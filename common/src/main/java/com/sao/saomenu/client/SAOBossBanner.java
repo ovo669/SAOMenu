@@ -13,6 +13,7 @@ import net.minecraft.world.entity.LivingEntity;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -23,6 +24,12 @@ import java.util.concurrent.ConcurrentHashMap;
  * <p>横幅画在 HUD 层而非世界空间——与 SAOTargetBar3D.renderLabels 同理:
  * 自建图元在 Iris/Oculus gbuffer 里会被洗成色块,HUD 层完全绕开光影管线。
  * 目标收集复用 SAOTargetBar3D 的世界扫描(lookFactor 视线门控)。</p>
+ *
+ * <p>状态机:SEEN 只保留「本帧扫描登记」的实体 id,每帧消费完即清空
+ * (与 SAOTargetBar3D.render 开头的 LABELS.clear() 同一套约定);
+ * 本帧未再登记的条目 STRENGTH 逐帧衰减、归零后连同 NAMES 一起移除——
+ * Boss 死亡或移出视野后横幅随之淡出。曾有 bug:SEEN 永不清理,
+ * 淡出分支永远走不到,Boss 死后横幅永远挂在屏幕上。</p>
  */
 public final class SAOBossBanner {
 
@@ -37,11 +44,17 @@ public final class SAOBossBanner {
     private static final float W_FRAC = 0.34f;
     /** immortal.png 300x126 的宽高比。 */
     private static final float ASPECT = 300f / 126f;
+    /** 每帧淡出衰减量:满强度约 12 帧淡完。 */
+    static final float DECAY_PER_FRAME = 0.08f;
+    /** 每次登记的淡入增量:约 8 帧淡入到满。 */
+    static final float RAMP_PER_SEEN = 0.12f;
 
     /** 各 Boss 实体的显示强度(淡入淡出)。 */
     private static final Map<Integer, Float> STRENGTH = new ConcurrentHashMap<>();
-    /** 本帧由目标血条扫描登记的 Boss(实体 id → 显示名)。 */
-    private static final Map<Integer, String> SEEN = new ConcurrentHashMap<>();
+    /** 显示名:随强度条目存续,淡出期间横幅仍能读出名字。 */
+    private static final Map<Integer, String> NAMES = new ConcurrentHashMap<>();
+    /** 本帧由目标血条扫描登记的实体 id(render 每帧消费完即清空)。 */
+    private static final Set<Integer> SEEN = ConcurrentHashMap.newKeySet();
 
     private SAOBossBanner() {
     }
@@ -55,13 +68,18 @@ public final class SAOBossBanner {
 
     /** SAOTargetBar3D 世界扫描循环调用:视线命中 Boss 时登记。 */
     public static void seen(LivingEntity le, float lookStrength) {
+        register(le.getId(), le.getDisplayName().getString(), lookStrength);
+    }
+
+    /** 登记本体(纯状态操作,不依赖 Minecraft 类,可单测)。 */
+    static void register(int id, String name, float lookStrength) {
         if (!SAOConfig.showBossBanner()) {
             return;
         }
         if (lookStrength > 0.35f) {
-            SEEN.put(le.getId(), le.getDisplayName().getString());
-            float cur = STRENGTH.getOrDefault(le.getId(), 0f);
-            STRENGTH.put(le.getId(), Math.min(1f, cur + 0.12f));
+            SEEN.add(id);
+            NAMES.put(id, name);
+            STRENGTH.merge(id, RAMP_PER_SEEN, (cur, add) -> Math.min(1f, cur + add));
         }
     }
 
@@ -72,9 +90,9 @@ public final class SAOBossBanner {
 
     /** HUD 层渲染入口(SAOHud.render 调用)。 */
     public static void render(GuiGraphics g, int screenW, int screenH) {
-        // 关闭开关时连带清掉残留强度,避免重新打开后旧 Boss 立刻闪一帧
+        // 关闭开关时连带清掉残留状态,避免重新打开后旧 Boss 立刻闪一帧
         if (!SAOConfig.showBossBanner()) {
-            if (!STRENGTH.isEmpty() || !SEEN.isEmpty()) {
+            if (!STRENGTH.isEmpty() || !NAMES.isEmpty() || !SEEN.isEmpty()) {
                 reset();
             }
             return;
@@ -83,11 +101,26 @@ public final class SAOBossBanner {
             return;
         }
         long now = Util.getMillis();
-        // 清理:未被本帧扫描刷新的条目淡出后移除
+        decayFrame();
+
+        // 取强度最高的一个 Boss 显示(多 Boss 同屏不叠罗汉)
+        int bestId = strongestId();
+        String name = bestId < 0 ? null : nameOf(bestId);
+        if (name == null) {
+            return;
+        }
+        draw(g, screenW, screenH, name, STRENGTH.get(bestId), now);
+    }
+
+    /**
+     * 每帧淡出:SEEN 里只有本帧扫描重新登记的实体;
+     * 上一帧还在、本帧没登记(Boss 死了/移出视野/没在看)的逐帧衰减,归零移除。
+     */
+    static void decayFrame() {
         List<Integer> dead = null;
         for (Map.Entry<Integer, Float> e : STRENGTH.entrySet()) {
-            if (!SEEN.containsKey(e.getKey())) {
-                float next = e.getValue() - 0.08f;
+            if (!SEEN.contains(e.getKey())) {
+                float next = e.getValue() - DECAY_PER_FRAME;
                 if (next <= 0f) {
                     (dead == null ? dead = new ArrayList<>() : dead).add(e.getKey());
                 } else {
@@ -98,14 +131,15 @@ public final class SAOBossBanner {
         if (dead != null) {
             for (Integer id : dead) {
                 STRENGTH.remove(id);
+                NAMES.remove(id);
             }
         }
-        if (STRENGTH.isEmpty()) {
-            SEEN.clear();
-            return;
-        }
+        // 本帧消费完即清空,下一帧由世界扫描重新登记
+        SEEN.clear();
+    }
 
-        // 取强度最高的一个 Boss 显示(多 Boss 同屏不叠罗汉)
+    /** 当前强度最高的实体 id;无可显示条目时返回 -1。 */
+    static int strongestId() {
         int bestId = -1;
         float best = 0f;
         for (Map.Entry<Integer, Float> e : STRENGTH.entrySet()) {
@@ -114,19 +148,18 @@ public final class SAOBossBanner {
                 bestId = e.getKey();
             }
         }
-        if (bestId < 0) {
-            return;
-        }
-        String name = SEEN.get(bestId);
-        if (name == null) {
-            return;
-        }
-        draw(g, screenW, screenH, name, best, now);
+        return bestId;
+    }
+
+    /** 显示名;条目不存在时返回 null。 */
+    static String nameOf(int entityId) {
+        return NAMES.get(entityId);
     }
 
     /** 全部状态清空(换世界)。 */
     public static void reset() {
         STRENGTH.clear();
+        NAMES.clear();
         SEEN.clear();
     }
 

@@ -74,7 +74,7 @@ SAO Utils 风格的圆形菜单界面模组 · Minecraft 1.20.1 · Architectury(
 
 ```
 gradlew build                 # 构建 Forge jar
-gradlew :common:test          # 84 项单元测试(布局/配置/通知/欢迎动画/碎裂/目标血条 2D+3D)
+gradlew :common:test          # 92 项单元测试(布局/配置/通知/欢迎动画/碎裂/目标血条 2D+3D/Boss 横幅)
 gradlew :forge:runClient      # 启动 Forge 开发客户端
 
 # 无头可视化校验:自动开菜单/队伍面板/好友面板/二级菜单/设置界面/物品栏、
