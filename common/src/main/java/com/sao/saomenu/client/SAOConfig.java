@@ -44,6 +44,9 @@ public final class SAOConfig {
     public static final float DEF_PLATE_PANEL_X = 0f;
     public static final float DEF_PLATE_PANEL_Y = 0f;
 
+    /** 时钟默认常显;开启「仅菜单内显示」后随菜单关闭而隐藏。 */
+    public static final boolean DEF_CLOCK_MENU_ONLY = false;
+
     /** 地图面板默认锚点(屏幕比例;参照动画里地图卡浮在人物左前方)。 */
     public static final float DEF_MAP_PANEL_X = 0.10f;
     public static final float DEF_MAP_PANEL_Y = 0.28f;
@@ -96,6 +99,7 @@ public final class SAOConfig {
     private static boolean showBossBanner = DEF_BOSS_BANNER;
     private static float platePanelX = DEF_PLATE_PANEL_X;
     private static float platePanelY = DEF_PLATE_PANEL_Y;
+    private static boolean clockOnlyInMenu = DEF_CLOCK_MENU_ONLY;
     private static boolean hasOpenedSettings = false; // 是否打开过设置界面
 
     private static Path loadedFrom;
@@ -376,6 +380,15 @@ public final class SAOConfig {
         platePanelY = clamp(v, 0f, 1f);
     }
 
+    /** 时钟是否仅 SAO 菜单打开期间显示(关闭菜单即隐藏)。 */
+    public static boolean clockOnlyInMenu() {
+        return clockOnlyInMenu;
+    }
+
+    public static void setClockOnlyInMenu(boolean v) {
+        clockOnlyInMenu = v;
+    }
+
     public static void setSaoToasts(boolean v) {
         saoToasts = v;
     }
@@ -435,6 +448,7 @@ public final class SAOConfig {
         showBossBanner = DEF_BOSS_BANNER;
         platePanelX = DEF_PLATE_PANEL_X;
         platePanelY = DEF_PLATE_PANEL_Y;
+        clockOnlyInMenu = DEF_CLOCK_MENU_ONLY;
     }
 
     // ------------------------------------------------------------ 持久化
@@ -490,6 +504,7 @@ public final class SAOConfig {
             showBossBanner = d.showBossBanner;
             setPlatePanelX(d.platePanelX);
             setPlatePanelY(d.platePanelY);
+            clockOnlyInMenu = d.clockOnlyInMenu;
             hasOpenedSettings = d.hasOpenedSettings; // 加载是否打开过设置
         } catch (IOException | JsonSyntaxException e) {
             SAOMenu.LOGGER.warn("[SAOMenu] config load failed, keeping defaults: {}", e.toString());
@@ -500,7 +515,7 @@ public final class SAOConfig {
         if (file == null) {
             return;
         }
-        Data d = new Data(anchorX, anchorY, menuScale, bobAmp, sounds, hideHotbar, showHud, showAvatar, anchorFollowMouse, showTargetBar, showDamageNumbers, saoToasts, showClock, clock24h, clockDate, showWelcome, deathShatter, deathShatterDensity, accentHue, mapPanelX, mapPanelY, mapPinned, clockPanelX, clockPanelY, clockScale, hasOpenedSettings, hotbarScale, thirdPersonMenu, showBossBanner, platePanelX, platePanelY);
+        Data d = new Data(anchorX, anchorY, menuScale, bobAmp, sounds, hideHotbar, showHud, showAvatar, anchorFollowMouse, showTargetBar, showDamageNumbers, saoToasts, showClock, clock24h, clockDate, showWelcome, deathShatter, deathShatterDensity, accentHue, mapPanelX, mapPanelY, mapPinned, clockPanelX, clockPanelY, clockScale, hasOpenedSettings, hotbarScale, thirdPersonMenu, showBossBanner, platePanelX, platePanelY, clockOnlyInMenu);
         try {
             Path parent = file.getParent();
             if (parent != null) {
@@ -548,13 +563,14 @@ public final class SAOConfig {
         boolean showBossBanner;
         float platePanelX;
         float platePanelY;
+        boolean clockOnlyInMenu;
         boolean hasOpenedSettings;
 
         Data() {
-            this(DEF_ANCHOR_X, DEF_ANCHOR_Y, DEF_MENU_SCALE, DEF_BOB_AMP, true, true, true, true, true, true, true, true, true, true, false, true, true, DEF_SHATTER_DENSITY, DEF_ACCENT_HUE, DEF_MAP_PANEL_X, DEF_MAP_PANEL_Y, false, DEF_CLOCK_PANEL_X, DEF_CLOCK_PANEL_Y, DEF_CLOCK_SCALE, false, DEF_HOTBAR_SCALE, DEF_THIRD_PERSON, DEF_BOSS_BANNER, DEF_PLATE_PANEL_X, DEF_PLATE_PANEL_Y);
+            this(DEF_ANCHOR_X, DEF_ANCHOR_Y, DEF_MENU_SCALE, DEF_BOB_AMP, true, true, true, true, true, true, true, true, true, true, false, true, true, DEF_SHATTER_DENSITY, DEF_ACCENT_HUE, DEF_MAP_PANEL_X, DEF_MAP_PANEL_Y, false, DEF_CLOCK_PANEL_X, DEF_CLOCK_PANEL_Y, DEF_CLOCK_SCALE, false, DEF_HOTBAR_SCALE, DEF_THIRD_PERSON, DEF_BOSS_BANNER, DEF_PLATE_PANEL_X, DEF_PLATE_PANEL_Y, DEF_CLOCK_MENU_ONLY);
         }
 
-        Data(float ax, float ay, float ms, float bob, boolean s, boolean hh, boolean sh, boolean av, boolean fm, boolean tb, boolean dn, boolean st, boolean sc, boolean c24, boolean cd, boolean sw, boolean ds, float dsd, float hue, float mx, float my, boolean mp, float cx, float cy, float cs, boolean hos, float hbs, boolean tpm, boolean bb, float ppx, float ppy) {
+        Data(float ax, float ay, float ms, float bob, boolean s, boolean hh, boolean sh, boolean av, boolean fm, boolean tb, boolean dn, boolean st, boolean sc, boolean c24, boolean cd, boolean sw, boolean ds, float dsd, float hue, float mx, float my, boolean mp, float cx, float cy, float cs, boolean hos, float hbs, boolean tpm, boolean bb, float ppx, float ppy, boolean cim) {
             anchorX = ax;
             anchorY = ay;
             menuScale = ms;
@@ -586,6 +602,7 @@ public final class SAOConfig {
             showBossBanner = bb;
             platePanelX = ppx;
             platePanelY = ppy;
+            clockOnlyInMenu = cim;
         }
     }
 }

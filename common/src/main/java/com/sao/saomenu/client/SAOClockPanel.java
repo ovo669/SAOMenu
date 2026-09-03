@@ -104,6 +104,11 @@ public final class SAOClockPanel {
         if (!SAOConfig.showClock()) {
             return;
         }
+        // 「仅菜单内显示」:菜单关闭(或打开的是其他界面)时 HUD 层不再画时钟;
+        // 菜单屏路径不受影响——SAOMenuScreen 本身就是 mc.screen
+        if (SAOConfig.clockOnlyInMenu() && !(mc.screen instanceof SAOMenuScreen)) {
+            return;
+        }
         int x = originX(screenW);
         int y = originY(screenH);
         RenderSystem.enableBlend();

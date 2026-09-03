@@ -129,5 +129,6 @@
   "saomenu.info.count": "個数",
   "saomenu.info.durability": "耐久度",
   "saomenu.info.enchant": "エンチャント",
-  "saomenu.config.clock_scale": "Clock Size"
+  "saomenu.config.clock_scale": "時計サイズ",
+  "saomenu.config.clock_menu_only": "時計はメニュー内のみ"
 }

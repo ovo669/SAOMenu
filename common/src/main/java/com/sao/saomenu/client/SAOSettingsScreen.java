@@ -229,7 +229,7 @@ public class SAOSettingsScreen extends Screen {
         return switch (p) {
             case LAYOUT -> 6;
             case COMBAT -> 7;
-            case HUD -> 9;
+            case HUD -> 10;
             case THEME -> 2;
             default -> 0;
         };
@@ -273,7 +273,8 @@ public class SAOSettingsScreen extends Screen {
                 case 5 -> "saomenu.config.sao_toasts";
                 case 6 -> "saomenu.config.sounds";
                 case 7 -> "saomenu.config.hotbar_scale";
-                default -> "saomenu.config.third_person";
+                case 8 -> "saomenu.config.third_person";
+                default -> "saomenu.config.clock_menu_only";
             };
             default -> "saomenu.config.theme";
         };
@@ -381,7 +382,8 @@ public class SAOSettingsScreen extends Screen {
                 case 4 -> SAOConfig.showWelcome();
                 case 5 -> SAOConfig.saoToasts();
                 case 6 -> SAOConfig.sounds();
-                default -> SAOConfig.thirdPersonMenu();
+                case 8 -> SAOConfig.thirdPersonMenu();
+                default -> SAOConfig.clockOnlyInMenu();
             };
             default -> false;
         };
@@ -414,7 +416,8 @@ public class SAOSettingsScreen extends Screen {
                     case 4 -> SAOConfig.setShowWelcome(!SAOConfig.showWelcome());
                     case 5 -> SAOConfig.setSaoToasts(!SAOConfig.saoToasts());
                     case 6 -> SAOConfig.setSounds(!SAOConfig.sounds());
-                    default -> SAOConfig.setThirdPersonMenu(!SAOConfig.thirdPersonMenu());
+                    case 8 -> SAOConfig.setThirdPersonMenu(!SAOConfig.thirdPersonMenu());
+                    default -> SAOConfig.setClockOnlyInMenu(!SAOConfig.clockOnlyInMenu());
                 }
             }
             default -> {

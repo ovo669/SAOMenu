@@ -129,5 +129,6 @@
   "saomenu.info.count": "개수",
   "saomenu.info.durability": "내구도",
   "saomenu.info.enchant": "인챈트",
-  "saomenu.config.clock_scale": "Clock Size"
+  "saomenu.config.clock_scale": "시계 크기",
+  "saomenu.config.clock_menu_only": "시계는 메뉴에서만"
 }

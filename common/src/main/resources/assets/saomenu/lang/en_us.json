@@ -39,6 +39,7 @@
   "saomenu.config.shatter_density": "Shatter Density",
   "saomenu.config.boss_banner": "Boss Banner",
   "saomenu.config.clock_scale": "Clock Size",
+  "saomenu.config.clock_menu_only": "Clock Only In Menu",
   "saomenu.welcome.msg": "SAO Utils started successfully.",
   "saomenu.config.reset": "Reset Defaults",
   "saomenu.config.done": "Done",

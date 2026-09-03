@@ -572,11 +572,28 @@ public final class SAOTargetBar3D {
             float from = tail ? tailStart : start;
             float len = tail ? tailSpan : span;
             // 顺序也是一道保险:内衬与顶底环面先画,读数面最后画。
-            // 内衬(rIn)与读数面(rOut)角度区间相同、只差半径,深度写入负责
-            // 让更近的读数面胜出;万一渲染器忽略深度,后画的读数面同样在上。
-            arcBand(vc, m, rIn, rIn, y0, y1, from, len, TRACK_DARK, alpha);
+            // 内衬(rIn)与读数面(rOut)只差半径,深度写入负责让更近的面胜出;
+            // 万一渲染器忽略深度,后画的读数面同样在上。
+            // 内衬面双面读数:与外表面完全相同的角度布局——环带是一个整体,
+            // 两个面花纹一致,斜着同时看到两个面时色带才衔接得上;
+            // 若按视角镜像(内外锚点对调),三视角下色带会看起来左右错位。
+            arcBand(vc, m, rIn, rIn, y0, yr0, from, len, EDGE_LIGHT, alpha);
+            arcBand(vc, m, rIn, rIn, yr1, y1, from, len, EDGE_LIGHT, alpha);
             arcBand(vc, m, rIn, rOut, y1, y1, from, len, EDGE_LIGHT, alpha);
             arcBand(vc, m, rIn, rOut, y0, y0, from, len, EDGE_LIGHT, alpha);
+            // 内衬读数区:与外表面同角度区间
+            if (tail) {
+                arcBand(vc, m, rIn, rIn, yr0, yr1, from, len,
+                        frac > 0.98f ? hp : TRACK_DARK, alpha);
+            } else {
+                if (fillSpan < len) {
+                    arcBand(vc, m, rIn, rIn, yr0, yr1, from, len - fillSpan,
+                            TRACK_DARK, alpha);
+                }
+                if (fillSpan > 0f) {
+                    arcBand(vc, m, rIn, rIn, yr0, yr1, fillFrom, fillSpan, hp, alpha);
+                }
+            }
             // 外表面上下亮边条:与读数区纵向不重叠
             arcBand(vc, m, rOut, rOut, yr1, y1, from, len, EDGE_LIGHT, alpha);
             arcBand(vc, m, rOut, rOut, y0, yr0, from, len, EDGE_LIGHT, alpha);

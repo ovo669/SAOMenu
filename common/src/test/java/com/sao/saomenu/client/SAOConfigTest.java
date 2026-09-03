@@ -131,6 +131,18 @@ class SAOConfigTest {
     }
 
     @Test
+    void clockOnlyInMenuDefaultsOffAndPersists() {
+        assertFalse(SAOConfig.clockOnlyInMenu(), "时钟默认常显,不改变现有观感");
+        SAOConfig.setClockOnlyInMenu(true);
+        Path file = tmp.resolve("clock_menu.json");
+        SAOConfig.save(file);
+        SAOConfig.reset();
+        assertFalse(SAOConfig.clockOnlyInMenu());
+        SAOConfig.load(file);
+        assertTrue(SAOConfig.clockOnlyInMenu(), "仅菜单内显示应写入并读回");
+    }
+
+    @Test
     void partialJsonFallsBackToDefaultsForMissingFields() throws Exception {
         Path file = tmp.resolve("partial.json");
         java.nio.file.Files.writeString(file,
