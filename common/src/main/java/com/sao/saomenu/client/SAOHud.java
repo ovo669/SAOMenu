@@ -60,6 +60,80 @@ public final class SAOHud {
         return MenuLayout.plateH(screenW);
     }
 
+    /**
+     * 血条板整组(板 + 队友血条 + 状态效果行)的总高度,拖动命中范围按整组算。
+     *
+     * <p>命中比可见范围多留 4 格余量:队友列表为空、也没有药水效果时,
+     * 板下方其实什么都没有,但拖动目标太小不好抓;反之整组最高时不超过此值。
+     * 命中框恒定也避免拖动中队伍人数变化导致命中区跳变。</p>
+     */
+    public static int plateGroupH(int screenW, Minecraft mc) {
+        return plateH(screenW) + 4 + Math.max(teamRows(mc) * (compactRowH(screenW) + 2), 24);
+    }
+
+    /** 血条板左上角 X(锚点比例换算,随配置拖动)。 */
+    public static int plateX(int screenW) {
+        float fx = Mth.clamp(SAOConfig.platePanelX(), 0f, 1f);
+        return Math.max(0, Math.min(Math.round(fx * (screenW - plateW(screenW))), screenW - plateW(screenW)));
+    }
+
+    /** 血条板左上角 Y(锚点比例换算,随配置拖动)。 */
+    public static int plateY(int screenH) {
+        float fy = Mth.clamp(SAOConfig.platePanelY(), 0f, 1f);
+        return Math.max(0, Math.min(Math.round(fy * Math.max(1, screenH - 20)), screenH - 20));
+    }
+
+    // ------------------------------------------------------------ 血条板拖动
+    // 与 SAOClockPanel 同一套交互:菜单屏内按住拖动,松手写盘;
+    // 命中范围是整组(板 + 队友血条 + 状态效果行),见 plateGroupH。
+
+    private static boolean plateDragging;
+    private static float plateGrabFx;
+    private static float plateGrabFy;
+    private static boolean plateDraggedSinceDown;
+
+    /** 命中检测:点在血条板整组范围内(仅菜单打开时可拖)。 */
+    public static boolean hitPlateGroup(Minecraft mc, int screenW, int screenH, int mx, int my) {
+        int gh = plateGroupH(screenW, mc);
+        int gx = plateX(screenW);
+        int gy = plateY(screenH);
+        return mx >= gx && mx < gx + plateW(screenW) && my >= gy && my < gy + gh;
+    }
+
+    public static void beginPlateDrag(Minecraft mc, int screenW, int screenH, int mx, int my) {
+        int gx = plateX(screenW);
+        int gy = plateY(screenH);
+        plateGrabFx = (mx - gx) / (float) plateW(screenW);
+        plateGrabFy = (my - gy) / (float) Math.max(1, plateGroupH(screenW, mc));
+        plateDragging = true;
+        plateDraggedSinceDown = false;
+    }
+
+    public static void dragPlateTo(int screenW, int screenH, int mx, int my) {
+        if (!plateDragging) {
+            return;
+        }
+        int w = plateW(screenW);
+        float fx = (mx - plateGrabFx * w) / (float) Math.max(1, screenW - w);
+        // Y 的可动范围与 plateY 的钳制一致(底部留 20 格给圆点物品栏)
+        float fy = (my - plateGrabFy * 20f) / (float) Math.max(1, screenH - 20);
+        SAOConfig.setPlatePanelX(fx);
+        SAOConfig.setPlatePanelY(fy);
+        plateDraggedSinceDown = true;
+    }
+
+    public static void endPlateDragAndSave() {
+        if (plateDragging && plateDraggedSinceDown) {
+            java.nio.file.Path p = SAOConfig.path();
+            if (p == null) {
+                p = Minecraft.getInstance().gameDirectory.toPath()
+                        .resolve("config").resolve("saomenu.json");
+            }
+            SAOConfig.save(p);
+        }
+        plateDragging = false;
+    }
+
     /** 常驻渲染入口(平台 HUD 钩子调用)。 */
     public static void render(GuiGraphics g, Minecraft mc) {
         if (mc.options.hideGui) {
@@ -91,13 +165,15 @@ public final class SAOHud {
         }
         int w = mc.getWindow().getGuiScaledWidth();
         int h = mc.getWindow().getGuiScaledHeight();
-        renderPlate(g, 0, 0, plateW(w), plateH(w),
+        int px = plateX(w);
+        int py = plateY(h);
+        renderPlate(g, px, py, plateW(w), plateH(w),
                 p.getGameProfile().getName(), p, 1f);
-        int effectsY = plateH(w) + 2;
+        int effectsY = py + plateH(w) + 2;
         // 队友血条:参照 SAO 左上角队伍血条组,排在自己血条板下方(与状态效果行并排)
-        renderTeamBars(g, mc, 0, plateH(w) + 2, w, p);
-        effectsY = plateH(w) + 2 + teamRows(mc) * (compactRowH(w) + 2);
-        renderEffects(g, 0, effectsY, p, 1f);
+        renderTeamBars(g, mc, px, py + plateH(w) + 2, w, p);
+        effectsY = py + plateH(w) + 2 + teamRows(mc) * (compactRowH(w) + 2);
+        renderEffects(g, px, effectsY, p, 1f);
         SAOCombatHud.render(g, mc, w, h, 1f);
         renderHotbarDots(g, w, h, p, 1f);
 
@@ -116,7 +192,7 @@ public final class SAOHud {
 
         // 效果图标悬停提示(名称 + 剩余时间)
         net.minecraft.world.effect.MobEffectInstance hovered = effectAt(
-                p, 0, plateH(w) + 2, mx, my);
+                p, px, py + plateH(w) + 2 + teamRows(mc) * (compactRowH(w) + 2), mx, my);
         if (hovered != null) {
             int secs = hovered.getDuration() / 20;
             String tip = hovered.getEffect().getDisplayName().getString()

@@ -40,6 +40,10 @@ public final class SAOConfig {
     /** 主题色(色相 0-360)。默认 41.44° = SAO 橙 #EFA603。 */
     public static final float DEF_ACCENT_HUE = 41.44f;
 
+    /** 血条板默认锚点(屏幕比例;SAO 原版位置=左上角)。 */
+    public static final float DEF_PLATE_PANEL_X = 0f;
+    public static final float DEF_PLATE_PANEL_Y = 0f;
+
     /** 地图面板默认锚点(屏幕比例;参照动画里地图卡浮在人物左前方)。 */
     public static final float DEF_MAP_PANEL_X = 0.10f;
     public static final float DEF_MAP_PANEL_Y = 0.28f;
@@ -90,6 +94,8 @@ public final class SAOConfig {
     private static float hotbarScale = DEF_HOTBAR_SCALE;
     private static boolean thirdPersonMenu = DEF_THIRD_PERSON;
     private static boolean showBossBanner = DEF_BOSS_BANNER;
+    private static float platePanelX = DEF_PLATE_PANEL_X;
+    private static float platePanelY = DEF_PLATE_PANEL_Y;
     private static boolean hasOpenedSettings = false; // 是否打开过设置界面
 
     private static Path loadedFrom;
@@ -197,6 +203,15 @@ public final class SAOConfig {
     /** 视线对准 Boss 时是否显示「Immortal Object」横幅。 */
     public static boolean showBossBanner() {
         return showBossBanner;
+    }
+
+    /** 血条板锚点(屏幕比例;SAO 原版位置 = 左上角 (0,0))。 */
+    public static float platePanelX() {
+        return platePanelX;
+    }
+
+    public static float platePanelY() {
+        return platePanelY;
     }
 
     public static float accentHue() {
@@ -353,6 +368,14 @@ public final class SAOConfig {
         showBossBanner = v;
     }
 
+    public static void setPlatePanelX(float v) {
+        platePanelX = clamp(v, 0f, 1f);
+    }
+
+    public static void setPlatePanelY(float v) {
+        platePanelY = clamp(v, 0f, 1f);
+    }
+
     public static void setSaoToasts(boolean v) {
         saoToasts = v;
     }
@@ -410,6 +433,8 @@ public final class SAOConfig {
         hotbarScale = DEF_HOTBAR_SCALE;
         thirdPersonMenu = DEF_THIRD_PERSON;
         showBossBanner = DEF_BOSS_BANNER;
+        platePanelX = DEF_PLATE_PANEL_X;
+        platePanelY = DEF_PLATE_PANEL_Y;
     }
 
     // ------------------------------------------------------------ 持久化
@@ -463,6 +488,8 @@ public final class SAOConfig {
             setHotbarScale(d.hotbarScale);
             thirdPersonMenu = d.thirdPersonMenu;
             showBossBanner = d.showBossBanner;
+            setPlatePanelX(d.platePanelX);
+            setPlatePanelY(d.platePanelY);
             hasOpenedSettings = d.hasOpenedSettings; // 加载是否打开过设置
         } catch (IOException | JsonSyntaxException e) {
             SAOMenu.LOGGER.warn("[SAOMenu] config load failed, keeping defaults: {}", e.toString());
@@ -473,7 +500,7 @@ public final class SAOConfig {
         if (file == null) {
             return;
         }
-        Data d = new Data(anchorX, anchorY, menuScale, bobAmp, sounds, hideHotbar, showHud, showAvatar, anchorFollowMouse, showTargetBar, showDamageNumbers, saoToasts, showClock, clock24h, clockDate, showWelcome, deathShatter, deathShatterDensity, accentHue, mapPanelX, mapPanelY, mapPinned, clockPanelX, clockPanelY, clockScale, hasOpenedSettings, hotbarScale, thirdPersonMenu, showBossBanner);
+        Data d = new Data(anchorX, anchorY, menuScale, bobAmp, sounds, hideHotbar, showHud, showAvatar, anchorFollowMouse, showTargetBar, showDamageNumbers, saoToasts, showClock, clock24h, clockDate, showWelcome, deathShatter, deathShatterDensity, accentHue, mapPanelX, mapPanelY, mapPinned, clockPanelX, clockPanelY, clockScale, hasOpenedSettings, hotbarScale, thirdPersonMenu, showBossBanner, platePanelX, platePanelY);
         try {
             Path parent = file.getParent();
             if (parent != null) {
@@ -519,13 +546,15 @@ public final class SAOConfig {
         float hotbarScale;
         boolean thirdPersonMenu;
         boolean showBossBanner;
+        float platePanelX;
+        float platePanelY;
         boolean hasOpenedSettings;
 
         Data() {
-            this(DEF_ANCHOR_X, DEF_ANCHOR_Y, DEF_MENU_SCALE, DEF_BOB_AMP, true, true, true, true, true, true, true, true, true, true, false, true, true, DEF_SHATTER_DENSITY, DEF_ACCENT_HUE, DEF_MAP_PANEL_X, DEF_MAP_PANEL_Y, false, DEF_CLOCK_PANEL_X, DEF_CLOCK_PANEL_Y, DEF_CLOCK_SCALE, false, DEF_HOTBAR_SCALE, DEF_THIRD_PERSON, DEF_BOSS_BANNER);
+            this(DEF_ANCHOR_X, DEF_ANCHOR_Y, DEF_MENU_SCALE, DEF_BOB_AMP, true, true, true, true, true, true, true, true, true, true, false, true, true, DEF_SHATTER_DENSITY, DEF_ACCENT_HUE, DEF_MAP_PANEL_X, DEF_MAP_PANEL_Y, false, DEF_CLOCK_PANEL_X, DEF_CLOCK_PANEL_Y, DEF_CLOCK_SCALE, false, DEF_HOTBAR_SCALE, DEF_THIRD_PERSON, DEF_BOSS_BANNER, DEF_PLATE_PANEL_X, DEF_PLATE_PANEL_Y);
         }
 
-        Data(float ax, float ay, float ms, float bob, boolean s, boolean hh, boolean sh, boolean av, boolean fm, boolean tb, boolean dn, boolean st, boolean sc, boolean c24, boolean cd, boolean sw, boolean ds, float dsd, float hue, float mx, float my, boolean mp, float cx, float cy, float cs, boolean hos, float hbs, boolean tpm, boolean bb) {
+        Data(float ax, float ay, float ms, float bob, boolean s, boolean hh, boolean sh, boolean av, boolean fm, boolean tb, boolean dn, boolean st, boolean sc, boolean c24, boolean cd, boolean sw, boolean ds, float dsd, float hue, float mx, float my, boolean mp, float cx, float cy, float cs, boolean hos, float hbs, boolean tpm, boolean bb, float ppx, float ppy) {
             anchorX = ax;
             anchorY = ay;
             menuScale = ms;
@@ -555,6 +584,8 @@ public final class SAOConfig {
             hotbarScale = hbs;
             thirdPersonMenu = tpm;
             showBossBanner = bb;
+            platePanelX = ppx;
+            platePanelY = ppy;
         }
     }
 }

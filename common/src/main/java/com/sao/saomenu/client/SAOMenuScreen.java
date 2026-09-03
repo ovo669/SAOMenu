@@ -641,11 +641,13 @@ public class SAOMenuScreen extends Screen {
 
         // 菜单打开期间常驻 HUD 由本 Screen 接管(平台 HUD 钩子此时跳过):
         // 血条板保持全透明度无缝衔接,圆点(上方已绘制)随开关动画淡入淡出
-        SAOHud.renderPlate(g, 0, 0, SAOHud.plateW(this.width), SAOHud.plateH(this.width),
+        int hudPx = SAOHud.plateX(this.width);
+        int hudPy = SAOHud.plateY(this.height);
+        SAOHud.renderPlate(g, hudPx, hudPy, SAOHud.plateW(this.width), SAOHud.plateH(this.width),
                 playerName(), pp, 1f);
         if (pp != null) {
-            SAOHud.renderTeamBars(g, mc(), 0, SAOHud.plateH(this.width) + 2, this.width, pp);
-            SAOHud.renderEffects(g, 0, SAOHud.plateH(this.width) + 2
+            SAOHud.renderTeamBars(g, mc(), hudPx, hudPy + SAOHud.plateH(this.width) + 2, this.width, pp);
+            SAOHud.renderEffects(g, hudPx, hudPy + SAOHud.plateH(this.width) + 2
                     + SAOHud.teamRows(mc()) * (SAOHud.compactRowH(this.width) + 2), pp, 1f);
         }
         SAOClockPanel.render(g, mc(), this.width, this.height, globalAlpha);
@@ -1539,6 +1541,7 @@ public class SAOMenuScreen extends Screen {
                 SAOMapPanel.dragTo(this.width, this.height, (int) mouseX, (int) mouseY);
             }
             SAOClockPanel.dragTo(this.width, this.height, (int) mouseX, (int) mouseY);
+            SAOHud.dragPlateTo(this.width, this.height, (int) mouseX, (int) mouseY);
         }
         super.mouseMoved(mouseX, mouseY);
     }
@@ -1547,6 +1550,7 @@ public class SAOMenuScreen extends Screen {
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
         SAOMapPanel.endDragAndSave();
         SAOClockPanel.endDragAndSave();
+        SAOHud.endPlateDragAndSave();
         return super.mouseReleased(mouseX, mouseY, button);
     }
 
@@ -1564,6 +1568,13 @@ public class SAOMenuScreen extends Screen {
         // 时钟面板拖动(优先于地图面板,体积更小)
         if (SAOClockPanel.hitCard(this.width, this.height, mx, my)) {
             SAOClockPanel.beginDrag(this.width, this.height, mx, my);
+            return true;
+        }
+
+        // 血条板拖动:整组(板+队友血条+状态行)按住即可挪到任意位置,
+        // 落点存配置;与地图/时钟不重叠时互不干扰
+        if (SAOConfig.showHud() && SAOHud.hitPlateGroup(mc(), this.width, this.height, mx, my)) {
+            SAOHud.beginPlateDrag(mc(), this.width, this.height, mx, my);
             return true;
         }
 
