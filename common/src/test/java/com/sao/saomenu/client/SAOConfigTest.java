@@ -155,6 +155,18 @@ class SAOConfigTest {
     }
 
     @Test
+    void hideVanillaHealthDefaultsOnAndPersists() {
+        assertTrue(SAOConfig.hideVanillaHealth(), "隐藏原版血条默认开");
+        SAOConfig.setHideVanillaHealth(false);
+        Path file = tmp.resolve("hvh.json");
+        SAOConfig.save(file);
+        SAOConfig.reset();
+        assertTrue(SAOConfig.hideVanillaHealth());
+        SAOConfig.load(file);
+        assertFalse(SAOConfig.hideVanillaHealth(), "关闭状态应写入并读回");
+    }
+
+    @Test
     void partialJsonFallsBackToDefaultsForMissingFields() throws Exception {
         Path file = tmp.resolve("partial.json");
         java.nio.file.Files.writeString(file,

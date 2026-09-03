@@ -41,6 +41,7 @@
   "saomenu.config.accent": "テーマカラー",
   "saomenu.config.sounds": "効果音",
   "saomenu.config.hide_hotbar": "バニラホットバーを隠す",
+  "saomenu.config.hide_vanilla_health": "バニラ体力を隠す(空腹は中央)",
   "saomenu.config.auto_sprint": "自動スプリント(W長押し)",
   "saomenu.config.show_hud": "SAO HUD",
   "saomenu.config.show_avatar": "スキンアバター",

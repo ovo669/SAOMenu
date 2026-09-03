@@ -22,6 +22,7 @@
   "saomenu.config.accent": "Accent Color",
   "saomenu.config.sounds": "Sounds",
   "saomenu.config.hide_hotbar": "Hide Vanilla Hotbar",
+  "saomenu.config.hide_vanilla_health": "Hide Vanilla Health (Centered Food)",
   "saomenu.config.auto_sprint": "Auto Sprint (Hold W)",
   "saomenu.config.show_hud": "SAO HUD",
   "saomenu.config.show_avatar": "Skin Avatar",

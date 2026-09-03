@@ -50,6 +50,9 @@ public final class SAOConfig {
     /** 按住 W 自动疾跑(程序性按住疾跑键,原版条件照常生效),默认开。 */
     public static final boolean DEF_AUTO_SPRINT = true;
 
+    /** 隐藏原版血条,饥饿条居中(氧气泡保留),默认开。 */
+    public static final boolean DEF_HIDE_VANILLA_HEALTH = true;
+
     /** 地图面板默认锚点(屏幕比例;参照动画里地图卡浮在人物左前方)。 */
     public static final float DEF_MAP_PANEL_X = 0.10f;
     public static final float DEF_MAP_PANEL_Y = 0.28f;
@@ -104,6 +107,7 @@ public final class SAOConfig {
     private static float platePanelY = DEF_PLATE_PANEL_Y;
     private static boolean clockOnlyInMenu = DEF_CLOCK_MENU_ONLY;
     private static boolean autoSprint = DEF_AUTO_SPRINT;
+    private static boolean hideVanillaHealth = DEF_HIDE_VANILLA_HEALTH;
     private static boolean hasOpenedSettings = false; // 是否打开过设置界面
 
     private static Path loadedFrom;
@@ -402,6 +406,15 @@ public final class SAOConfig {
         autoSprint = v;
     }
 
+    /** 隐藏原版血条(饥饿条居中显示,氧气泡保留)。 */
+    public static boolean hideVanillaHealth() {
+        return hideVanillaHealth;
+    }
+
+    public static void setHideVanillaHealth(boolean v) {
+        hideVanillaHealth = v;
+    }
+
     public static void setSaoToasts(boolean v) {
         saoToasts = v;
     }
@@ -463,6 +476,7 @@ public final class SAOConfig {
         platePanelY = DEF_PLATE_PANEL_Y;
         clockOnlyInMenu = DEF_CLOCK_MENU_ONLY;
         autoSprint = DEF_AUTO_SPRINT;
+        hideVanillaHealth = DEF_HIDE_VANILLA_HEALTH;
     }
 
     // ------------------------------------------------------------ 持久化
@@ -520,6 +534,7 @@ public final class SAOConfig {
             setPlatePanelY(d.platePanelY);
             clockOnlyInMenu = d.clockOnlyInMenu;
             autoSprint = d.autoSprint;
+            hideVanillaHealth = d.hideVanillaHealth;
             hasOpenedSettings = d.hasOpenedSettings; // 加载是否打开过设置
         } catch (IOException | JsonSyntaxException e) {
             SAOMenu.LOGGER.warn("[SAOMenu] config load failed, keeping defaults: {}", e.toString());
@@ -530,7 +545,7 @@ public final class SAOConfig {
         if (file == null) {
             return;
         }
-        Data d = new Data(anchorX, anchorY, menuScale, bobAmp, sounds, hideHotbar, showHud, showAvatar, anchorFollowMouse, showTargetBar, showDamageNumbers, saoToasts, showClock, clock24h, clockDate, showWelcome, deathShatter, deathShatterDensity, accentHue, mapPanelX, mapPanelY, mapPinned, clockPanelX, clockPanelY, clockScale, hasOpenedSettings, hotbarScale, thirdPersonMenu, showBossBanner, platePanelX, platePanelY, clockOnlyInMenu, autoSprint);
+        Data d = new Data(anchorX, anchorY, menuScale, bobAmp, sounds, hideHotbar, showHud, showAvatar, anchorFollowMouse, showTargetBar, showDamageNumbers, saoToasts, showClock, clock24h, clockDate, showWelcome, deathShatter, deathShatterDensity, accentHue, mapPanelX, mapPanelY, mapPinned, clockPanelX, clockPanelY, clockScale, hasOpenedSettings, hotbarScale, thirdPersonMenu, showBossBanner, platePanelX, platePanelY, clockOnlyInMenu, autoSprint, hideVanillaHealth);
         try {
             Path parent = file.getParent();
             if (parent != null) {
@@ -580,13 +595,14 @@ public final class SAOConfig {
         float platePanelY;
         boolean clockOnlyInMenu;
         boolean autoSprint;
+        boolean hideVanillaHealth;
         boolean hasOpenedSettings;
 
         Data() {
-            this(DEF_ANCHOR_X, DEF_ANCHOR_Y, DEF_MENU_SCALE, DEF_BOB_AMP, true, true, true, true, true, true, true, true, true, true, false, true, true, DEF_SHATTER_DENSITY, DEF_ACCENT_HUE, DEF_MAP_PANEL_X, DEF_MAP_PANEL_Y, false, DEF_CLOCK_PANEL_X, DEF_CLOCK_PANEL_Y, DEF_CLOCK_SCALE, false, DEF_HOTBAR_SCALE, DEF_THIRD_PERSON, DEF_BOSS_BANNER, DEF_PLATE_PANEL_X, DEF_PLATE_PANEL_Y, DEF_CLOCK_MENU_ONLY, DEF_AUTO_SPRINT);
+            this(DEF_ANCHOR_X, DEF_ANCHOR_Y, DEF_MENU_SCALE, DEF_BOB_AMP, true, true, true, true, true, true, true, true, true, true, false, true, true, DEF_SHATTER_DENSITY, DEF_ACCENT_HUE, DEF_MAP_PANEL_X, DEF_MAP_PANEL_Y, false, DEF_CLOCK_PANEL_X, DEF_CLOCK_PANEL_Y, DEF_CLOCK_SCALE, false, DEF_HOTBAR_SCALE, DEF_THIRD_PERSON, DEF_BOSS_BANNER, DEF_PLATE_PANEL_X, DEF_PLATE_PANEL_Y, DEF_CLOCK_MENU_ONLY, DEF_AUTO_SPRINT, DEF_HIDE_VANILLA_HEALTH);
         }
 
-        Data(float ax, float ay, float ms, float bob, boolean s, boolean hh, boolean sh, boolean av, boolean fm, boolean tb, boolean dn, boolean st, boolean sc, boolean c24, boolean cd, boolean sw, boolean ds, float dsd, float hue, float mx, float my, boolean mp, float cx, float cy, float cs, boolean hos, float hbs, boolean tpm, boolean bb, float ppx, float ppy, boolean cim, boolean asp) {
+        Data(float ax, float ay, float ms, float bob, boolean s, boolean hh, boolean sh, boolean av, boolean fm, boolean tb, boolean dn, boolean st, boolean sc, boolean c24, boolean cd, boolean sw, boolean ds, float dsd, float hue, float mx, float my, boolean mp, float cx, float cy, float cs, boolean hos, float hbs, boolean tpm, boolean bb, float ppx, float ppy, boolean cim, boolean asp, boolean hvh) {
             anchorX = ax;
             anchorY = ay;
             menuScale = ms;
@@ -620,6 +636,7 @@ public final class SAOConfig {
             platePanelY = ppy;
             clockOnlyInMenu = cim;
             autoSprint = asp;
+            hideVanillaHealth = hvh;
         }
     }
 }

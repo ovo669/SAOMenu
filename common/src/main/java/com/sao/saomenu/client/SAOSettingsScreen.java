@@ -227,7 +227,7 @@ public class SAOSettingsScreen extends Screen {
 
     private int rowCount(Page p) {
         return switch (p) {
-            case LAYOUT -> 7;
+            case LAYOUT -> 8;
             case COMBAT -> 7;
             case HUD -> 10;
             case THEME -> 2;
@@ -254,7 +254,8 @@ public class SAOSettingsScreen extends Screen {
                 case 3 -> "saomenu.config.bob";
                 case 4 -> "saomenu.config.follow_mouse";
                 case 5 -> "saomenu.config.hide_hotbar";
-                default -> "saomenu.config.auto_sprint";
+                case 6 -> "saomenu.config.auto_sprint";
+                default -> "saomenu.config.hide_vanilla_health";
             };
             case COMBAT -> switch (i) {
                 case 0 -> "saomenu.config.show_hud";
@@ -370,6 +371,7 @@ public class SAOSettingsScreen extends Screen {
             case LAYOUT -> switch (i) {
                 case 4 -> SAOConfig.anchorFollowMouse();
                 case 6 -> SAOConfig.autoSprint();
+                case 7 -> SAOConfig.hideVanillaHealth();
                 default -> SAOConfig.hideHotbar();
             };
             case COMBAT -> switch (i) {
@@ -401,6 +403,8 @@ public class SAOSettingsScreen extends Screen {
                     SAOConfig.setAnchorFollowMouse(!SAOConfig.anchorFollowMouse());
                 } else if (i == 6) {
                     SAOConfig.setAutoSprint(!SAOConfig.autoSprint());
+                } else if (i == 7) {
+                    SAOConfig.setHideVanillaHealth(!SAOConfig.hideVanillaHealth());
                 } else {
                     SAOConfig.setHideHotbar(!SAOConfig.hideHotbar());
                 }

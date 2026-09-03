@@ -22,6 +22,7 @@
   "saomenu.config.accent": "主题色",
   "saomenu.config.sounds": "音效",
   "saomenu.config.hide_hotbar": "隐藏原版快捷栏",
+  "saomenu.config.hide_vanilla_health": "隐藏原版血条(饥饿居中)",
   "saomenu.config.auto_sprint": "自动疾跑(按住 W)",
   "saomenu.config.show_hud": "SAO HUD",
   "saomenu.config.show_avatar": "皮肤头像",

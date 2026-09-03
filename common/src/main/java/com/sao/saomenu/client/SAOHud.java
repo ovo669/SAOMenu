@@ -22,6 +22,8 @@ public final class SAOHud {
     private static final ResourceLocation TEX_HP_BAR = ResourceLocationHelper.hud("hp_bar.png");
     private static final ResourceLocation TEX_HP_GREEN = ResourceLocationHelper.hud("hp_green.png");
     private static final ResourceLocation TEX_HP_ICON = ResourceLocationHelper.hud("hp_icon.png");
+    /** 原版 GUI 图标集(饥饿/氧气泡),与 Gui.GUI_ICONS_LOCATION 同源。 */
+    private static final ResourceLocation GUI_ICONS = new ResourceLocation("textures/gui/icons.png");
 
     private static final int TEXT_WHITE = 0xFFF4F4F4;
     // 血条板浅色底上的文字色
@@ -206,9 +208,51 @@ public final class SAOHud {
         renderLowHpVignette(g, w, h, p.getMaxHealth() <= 0f ? 0f : p.getHealth() / p.getMaxHealth());
     }
 
+    /**
+     * 居中的原版饥饿条(由 GuiMixin 取消 renderPlayerHealth 后代画)。
+     *
+     * <p>贴图 u/v 与原版 1.20.1 Gui.renderPlayerHealth 字节码逐项核对:
+     * 空格 (16,27)、满格 (52,27)、半格 (61,27);饥饿药水效果时
+     * 空格 u+117、满格 u+36、半格 u+36。氧气泡 (16,18)、破裂泡 (25,18),
+     * 画在饥饿条上方一行,数量公式 ceil((air-2)*10/max) 同原版。
+     * 原版血条/护甲行被取消,坐骑血条(renderVehicleHealth)是独立方法不受影响。</p>
+     */
+    public static void renderVanillaFoodCentered(GuiGraphics g, Player p) {
+        Minecraft mc = Minecraft.getInstance();
+        int w = g.guiWidth();
+        int h = g.guiHeight();
+        int y = h - 39;
+        // 10 个图标,步进 8px,末格宽 9px → 整条 81px,水平居中
+        int x0 = (w - 81) / 2;
+        int food = p.getFoodData().getFoodLevel();
+        boolean hungerFx = p.hasEffect(net.minecraft.world.effect.MobEffects.HUNGER);
+        RenderSystem.enableBlend();
+        for (int i = 0; i < 10; i++) {
+            int x = x0 + i * 8;
+            g.blit(GUI_ICONS, x, y, 16 + (hungerFx ? 117 : 0), 27, 9, 9);
+            int v = food - i * 2;
+            if (v >= 2) {
+                g.blit(GUI_ICONS, x, y, 52 + (hungerFx ? 36 : 0), 27, 9, 9);
+            } else if (v == 1) {
+                g.blit(GUI_ICONS, x, y, 61 + (hungerFx ? 36 : 0), 27, 9, 9);
+            }
+        }
+        // 氧气泡:眼睛入水或氧气未满时显示,居中悬在饥饿条上方 10px
+        int maxAir = p.getMaxAirSupply();
+        int air = Math.min(p.getAirSupply(), maxAir);
+        if (!p.isEyeInFluid(net.minecraft.tags.FluidTags.WATER) && air >= maxAir) {
+            return;
+        }
+        int yAir = y - 10;
+        int full = Mth.ceil((air - 2) * 10.0D / maxAir);
+        int total = Mth.ceil(air * 10.0D / maxAir);
+        for (int i = 0; i < total; i++) {
+            g.blit(GUI_ICONS, x0 + i * 8, yAir, i < full ? 16 : 25, 18, 9, 9);
+        }
+    }
+
     /** 低血量屏幕边缘红晕:血量越低越浓,呼吸式闪烁。 */
-    static void renderLowHpVignette(GuiGraphics g, int w, int h, float hpFrac) {
-        if (hpFrac >= 0.2f || hpFrac <= 0f) {
+    static void renderLowHpVignette(GuiGraphics g, int w, int h, float hpFrac) {        if (hpFrac >= 0.2f || hpFrac <= 0f) {
             return;
         }
         float danger = Mth.clamp((0.25f - hpFrac) * 4f, 0f, 1f); // 25% 以下开始出现,越低越浓
