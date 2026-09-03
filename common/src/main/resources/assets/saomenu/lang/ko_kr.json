@@ -56,6 +56,7 @@
   "saomenu.config.show_welcome": "환영 애니메이션",
   "saomenu.config.death_shatter": "사망 파편 효과",
   "saomenu.config.shatter_density": "파편 밀도",
+  "saomenu.config.boss_banner": "보스 배너",
   "saomenu.welcome.msg": "SAO Utils 실행에 성공했습니다.",
   "saomenu.config.reset": "기본값 복원",
   "saomenu.config.done": "완료",

@@ -56,6 +56,7 @@
   "saomenu.config.show_welcome": "ようこそアニメーション",
   "saomenu.config.death_shatter": "死亡時の破砕エフェクト",
   "saomenu.config.shatter_density": "破片の密度",
+  "saomenu.config.boss_banner": "ボス表示バナー",
   "saomenu.welcome.msg": "SAO Utils の起動に成功しました.",
   "saomenu.config.reset": "デフォルトに戻す",
   "saomenu.config.done": "完了",

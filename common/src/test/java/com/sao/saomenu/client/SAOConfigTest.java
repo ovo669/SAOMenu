@@ -119,6 +119,18 @@ class SAOConfigTest {
     }
 
     @Test
+    void bossBannerDefaultsOnAndPersists() {
+        assertTrue(SAOConfig.showBossBanner(), "新开关默认开,不改变现有观感");
+        SAOConfig.setShowBossBanner(false);
+        Path file = tmp.resolve("boss.json");
+        SAOConfig.save(file);
+        SAOConfig.reset();
+        assertTrue(SAOConfig.showBossBanner());
+        SAOConfig.load(file);
+        assertFalse(SAOConfig.showBossBanner(), "关闭状态应写入并读回");
+    }
+
+    @Test
     void partialJsonFallsBackToDefaultsForMissingFields() throws Exception {
         Path file = tmp.resolve("partial.json");
         java.nio.file.Files.writeString(file,
@@ -129,5 +141,6 @@ class SAOConfigTest {
         assertEquals(SAOConfig.DEF_MENU_SCALE, SAOConfig.menuScale(), "缺失字段应回退默认");
         assertTrue(SAOConfig.sounds(), "缺失布尔字段应回退默认 true");
         assertEquals(SAOConfig.DEF_ACCENT_HUE, SAOConfig.accentHue(), 0.01f, "缺失 accentHue 应回退默认");
+        assertTrue(SAOConfig.showBossBanner(), "旧配置文件缺 showBossBanner 应回退默认开");
     }
 }

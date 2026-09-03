@@ -227,7 +227,8 @@ public class SAOSettingsScreen extends Screen {
 
     private int rowCount(Page p) {
         return switch (p) {
-            case LAYOUT, COMBAT -> 6;
+            case LAYOUT -> 6;
+            case COMBAT -> 7;
             case HUD -> 9;
             case THEME -> 2;
             default -> 0;
@@ -260,7 +261,8 @@ public class SAOSettingsScreen extends Screen {
                 case 2 -> "saomenu.config.target_bar";
                 case 3 -> "saomenu.config.damage_numbers";
                 case 4 -> "saomenu.config.death_shatter";
-                default -> "saomenu.config.shatter_density";
+                case 5 -> "saomenu.config.shatter_density";
+                default -> "saomenu.config.boss_banner";
             };
             case HUD -> switch (i) {
                 case 0 -> "saomenu.config.show_clock";
@@ -369,7 +371,8 @@ public class SAOSettingsScreen extends Screen {
                 case 1 -> SAOConfig.showAvatar();
                 case 2 -> SAOConfig.showTargetBar();
                 case 3 -> SAOConfig.showDamageNumbers();
-                default -> SAOConfig.deathShatter();
+                case 4 -> SAOConfig.deathShatter();
+                default -> SAOConfig.showBossBanner();
             };
             case HUD -> switch (i) {
                 case 0 -> SAOConfig.showClock();
@@ -399,7 +402,8 @@ public class SAOSettingsScreen extends Screen {
                     case 1 -> SAOConfig.setShowAvatar(!SAOConfig.showAvatar());
                     case 2 -> SAOConfig.setShowTargetBar(!SAOConfig.showTargetBar());
                     case 3 -> SAOConfig.setShowDamageNumbers(!SAOConfig.showDamageNumbers());
-                    default -> SAOConfig.setDeathShatter(!SAOConfig.deathShatter());
+                    case 4 -> SAOConfig.setDeathShatter(!SAOConfig.deathShatter());
+                    default -> SAOConfig.setShowBossBanner(!SAOConfig.showBossBanner());
                 }
             }
             case HUD -> {

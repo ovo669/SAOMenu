@@ -37,6 +37,7 @@
   "saomenu.config.show_welcome": "Welcome Animation",
   "saomenu.config.death_shatter": "Death Shatter Effect",
   "saomenu.config.shatter_density": "Shatter Density",
+  "saomenu.config.boss_banner": "Boss Banner",
   "saomenu.config.clock_scale": "Clock Size",
   "saomenu.welcome.msg": "SAO Utils started successfully.",
   "saomenu.config.reset": "Reset Defaults",

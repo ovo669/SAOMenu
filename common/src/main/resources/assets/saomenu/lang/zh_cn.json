@@ -37,6 +37,7 @@
   "saomenu.config.show_welcome": "入世欢迎动画",
   "saomenu.config.death_shatter": "死亡碎裂特效",
   "saomenu.config.shatter_density": "碎裂密度",
+  "saomenu.config.boss_banner": "Boss 提示横幅",
   "saomenu.config.clock_scale": "时钟大小",
   "saomenu.welcome.msg": "SAO Utils 启动成功.",
   "saomenu.config.reset": "恢复默认",

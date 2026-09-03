@@ -59,6 +59,8 @@ public final class SAOConfig {
     public static final float DEF_HOTBAR_SCALE = 1.0f;
     /** 第三人称菜单板(打开菜单时角色面前出现 SAO 菜单,F5 可见)默认开。 */
     public static final boolean DEF_THIRD_PERSON = true;
+    /** Boss「Immortal Object」横幅默认开。 */
+    public static final boolean DEF_BOSS_BANNER = true;
 
     private static float anchorX = DEF_ANCHOR_X;
     private static float anchorY = DEF_ANCHOR_Y;
@@ -87,6 +89,7 @@ public final class SAOConfig {
     private static float clockScale = DEF_CLOCK_SCALE;
     private static float hotbarScale = DEF_HOTBAR_SCALE;
     private static boolean thirdPersonMenu = DEF_THIRD_PERSON;
+    private static boolean showBossBanner = DEF_BOSS_BANNER;
     private static boolean hasOpenedSettings = false; // 是否打开过设置界面
 
     private static Path loadedFrom;
@@ -189,6 +192,11 @@ public final class SAOConfig {
     /** 打开菜单时是否在角色面前渲染世界空间菜单板(第三人称可见)。 */
     public static boolean thirdPersonMenu() {
         return thirdPersonMenu;
+    }
+
+    /** 视线对准 Boss 时是否显示「Immortal Object」横幅。 */
+    public static boolean showBossBanner() {
+        return showBossBanner;
     }
 
     public static float accentHue() {
@@ -341,6 +349,10 @@ public final class SAOConfig {
         thirdPersonMenu = v;
     }
 
+    public static void setShowBossBanner(boolean v) {
+        showBossBanner = v;
+    }
+
     public static void setSaoToasts(boolean v) {
         saoToasts = v;
     }
@@ -397,6 +409,7 @@ public final class SAOConfig {
         clockScale = DEF_CLOCK_SCALE;
         hotbarScale = DEF_HOTBAR_SCALE;
         thirdPersonMenu = DEF_THIRD_PERSON;
+        showBossBanner = DEF_BOSS_BANNER;
     }
 
     // ------------------------------------------------------------ 持久化
@@ -449,6 +462,7 @@ public final class SAOConfig {
             setClockScale(d.clockScale);
             setHotbarScale(d.hotbarScale);
             thirdPersonMenu = d.thirdPersonMenu;
+            showBossBanner = d.showBossBanner;
             hasOpenedSettings = d.hasOpenedSettings; // 加载是否打开过设置
         } catch (IOException | JsonSyntaxException e) {
             SAOMenu.LOGGER.warn("[SAOMenu] config load failed, keeping defaults: {}", e.toString());
@@ -459,7 +473,7 @@ public final class SAOConfig {
         if (file == null) {
             return;
         }
-        Data d = new Data(anchorX, anchorY, menuScale, bobAmp, sounds, hideHotbar, showHud, showAvatar, anchorFollowMouse, showTargetBar, showDamageNumbers, saoToasts, showClock, clock24h, clockDate, showWelcome, deathShatter, deathShatterDensity, accentHue, mapPanelX, mapPanelY, mapPinned, clockPanelX, clockPanelY, clockScale, hasOpenedSettings, hotbarScale, thirdPersonMenu);
+        Data d = new Data(anchorX, anchorY, menuScale, bobAmp, sounds, hideHotbar, showHud, showAvatar, anchorFollowMouse, showTargetBar, showDamageNumbers, saoToasts, showClock, clock24h, clockDate, showWelcome, deathShatter, deathShatterDensity, accentHue, mapPanelX, mapPanelY, mapPinned, clockPanelX, clockPanelY, clockScale, hasOpenedSettings, hotbarScale, thirdPersonMenu, showBossBanner);
         try {
             Path parent = file.getParent();
             if (parent != null) {
@@ -504,13 +518,14 @@ public final class SAOConfig {
         float clockScale;
         float hotbarScale;
         boolean thirdPersonMenu;
+        boolean showBossBanner;
         boolean hasOpenedSettings;
 
         Data() {
-            this(DEF_ANCHOR_X, DEF_ANCHOR_Y, DEF_MENU_SCALE, DEF_BOB_AMP, true, true, true, true, true, true, true, true, true, true, false, true, true, DEF_SHATTER_DENSITY, DEF_ACCENT_HUE, DEF_MAP_PANEL_X, DEF_MAP_PANEL_Y, false, DEF_CLOCK_PANEL_X, DEF_CLOCK_PANEL_Y, DEF_CLOCK_SCALE, false, DEF_HOTBAR_SCALE, DEF_THIRD_PERSON);
+            this(DEF_ANCHOR_X, DEF_ANCHOR_Y, DEF_MENU_SCALE, DEF_BOB_AMP, true, true, true, true, true, true, true, true, true, true, false, true, true, DEF_SHATTER_DENSITY, DEF_ACCENT_HUE, DEF_MAP_PANEL_X, DEF_MAP_PANEL_Y, false, DEF_CLOCK_PANEL_X, DEF_CLOCK_PANEL_Y, DEF_CLOCK_SCALE, false, DEF_HOTBAR_SCALE, DEF_THIRD_PERSON, DEF_BOSS_BANNER);
         }
 
-        Data(float ax, float ay, float ms, float bob, boolean s, boolean hh, boolean sh, boolean av, boolean fm, boolean tb, boolean dn, boolean st, boolean sc, boolean c24, boolean cd, boolean sw, boolean ds, float dsd, float hue, float mx, float my, boolean mp, float cx, float cy, float cs, boolean hos, float hbs, boolean tpm) {
+        Data(float ax, float ay, float ms, float bob, boolean s, boolean hh, boolean sh, boolean av, boolean fm, boolean tb, boolean dn, boolean st, boolean sc, boolean c24, boolean cd, boolean sw, boolean ds, float dsd, float hue, float mx, float my, boolean mp, float cx, float cy, float cs, boolean hos, float hbs, boolean tpm, boolean bb) {
             anchorX = ax;
             anchorY = ay;
             menuScale = ms;
@@ -539,6 +554,7 @@ public final class SAOConfig {
             hasOpenedSettings = hos;
             hotbarScale = hbs;
             thirdPersonMenu = tpm;
+            showBossBanner = bb;
         }
     }
 }

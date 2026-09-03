@@ -55,6 +55,9 @@ public final class SAOBossBanner {
 
     /** SAOTargetBar3D 世界扫描循环调用:视线命中 Boss 时登记。 */
     public static void seen(LivingEntity le, float lookStrength) {
+        if (!SAOConfig.showBossBanner()) {
+            return;
+        }
         if (lookStrength > 0.35f) {
             SEEN.put(le.getId(), le.getDisplayName().getString());
             float cur = STRENGTH.getOrDefault(le.getId(), 0f);
@@ -69,6 +72,13 @@ public final class SAOBossBanner {
 
     /** HUD 层渲染入口(SAOHud.render 调用)。 */
     public static void render(GuiGraphics g, int screenW, int screenH) {
+        // 关闭开关时连带清掉残留强度,避免重新打开后旧 Boss 立刻闪一帧
+        if (!SAOConfig.showBossBanner()) {
+            if (!STRENGTH.isEmpty() || !SEEN.isEmpty()) {
+                reset();
+            }
+            return;
+        }
         if (SEEN.isEmpty() && STRENGTH.isEmpty()) {
             return;
         }
