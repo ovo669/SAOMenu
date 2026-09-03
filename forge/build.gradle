@@ -1,0 +1,156 @@
+plugins {
+	id 'com.gradleup.shadow' version '8.3.6'
+}
+
+architectury {
+    platformSetupLoomIde()
+    forge()
+}
+
+loom {
+    forge {
+        mixinConfig "saomenu.mixins.json"
+    }
+    runs {
+        client {
+            client()
+            name "Forge Client"
+            runDir "run/client"
+            vmArgs "-Dneoforge.enabledGameTestNamespace=saomenu"
+            programArgs "--username", "${rootProject.properties.getOrDefault('minecraft_username', 'Player')}"
+        }
+        server {
+            server()
+            name "Forge Server"
+            runDir "run/server"
+            vmArgs "-Dneoforge.enabledGameTestNamespace=saomenu"
+        }
+    }
+}
+
+configurations {
+    common
+    shadowCommon // Don't use shadow from the shadow plugin since it conflicts with Loom.
+    compileClasspath.extendsFrom common
+    runtimeClasspath.extendsFrom common
+    developmentForge.extendsFrom common
+}
+
+shadowJar {
+    exclude "architectury.common.json"
+    configurations = [project.configurations.shadowCommon]
+    archiveClassifier.set("dev-shadow")
+    
+    // 排除不需要的文件
+    exclude 'META-INF/versions/**'
+    
+    // 强制更新 META-INF/services 里的类名
+    mergeServiceFiles()
+    
+    // 排除 module-info.class 避免 JPMS 冲突
+    exclude 'module-info.class'
+}
+
+
+remapJar {
+	inputFile.set shadowJar.archiveFile
+	dependsOn shadowJar
+}
+
+jar {
+	archiveClassifier.set("dev")
+	from("${rootProject.projectDir}/LICENSE") {
+		rename { "${it}_${base.archivesName.get()}"}
+	}
+	
+	manifest {
+		attributes([
+			'Specification-Title'     : 'SAO Menu',
+			'Specification-Vendor'    : 'SAO-World',
+			'Specification-Version'   : '1',
+			'Implementation-Title'    : project.name,
+			'Implementation-Version'  : project.version,
+			'Implementation-Vendor'   : 'SAO-World'
+		])
+	}
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        url "https://maven.shedaniel.me/"
+        name "Shedaniel Maven"
+    }
+    maven {
+        url "https://maven.minecraftforge.net/"
+        name "Forge"
+    }
+    maven {
+        url "https://maven.architectury.dev/"
+        name "Architectury"
+    }
+    maven {
+        url "https://cursemaven.com"
+        name "CurseMaven"
+    }
+}
+
+tasks.named('processResources', ProcessResources).configure {
+    def replaceProperties = [
+        minecraft_version: '1.20.1',
+        minecraft_version_range: '[1.20.1,1.21)',
+        forge_version: project.forge_version,
+        forge_version_range: '[47,48)',
+        loader_version_range: '[47,)',
+        mod_id: 'saomenu',
+        mod_name: 'SAO Menu',
+        mod_version: project.version,
+        mod_authors: 'SAO Menu Team',
+        mod_description: 'SAO Utils style circular menu for Minecraft 1.20.1'
+    ]
+
+    inputs.properties replaceProperties
+
+    filesMatching(['META-INF/mods.toml']) {
+        expand replaceProperties
+    }
+}
+
+dependencies {
+    // Common 模块 - 添加源代码到编译路径
+    common(project(path: ":common", configuration: "namedElements")) { transitive false }
+    shadowCommon(project(path: ":common", configuration: "transformProductionForge")) { transitive false }
+
+    // Forge 平台
+    forge "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
+
+    // Architectury API - 使用 Jar-in-Jar 内嵌
+    modApi("dev.architectury:architectury-forge:9.2.14")
+    include("dev.architectury:architectury-forge:9.2.14")
+}
+
+// Source JAR 组装（合并 common 源码）
+sourcesJar {
+    // Avoid duplicate entries when merging common sources
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    def commonSources = project(":common").sourcesJar
+    dependsOn commonSources
+    from commonSources.archiveFile.map { zipTree(it) }
+}
+
+components.java {
+    withVariantsFromConfiguration(project.configurations.shadowRuntimeElements) {
+        skip()
+    }
+}
+
+sourceSets {
+    main {
+        java {
+            // Avoid JPMS split-package: keep top-level network package only in common
+        }
+        resources {
+            exclude 'assets/saomenu/lang/*.json'
+        }
+    }
+}

@@ -1,0 +1,10 @@
+{
+  "frame_w": 480,
+  "frame_h": 270,
+  "fps": 15,
+  "cols": 16,
+  "rows": 10,
+  "frames": 156,
+  "atlas_w": 7680,
+  "atlas_h": 2700
+}

@@ -1,0 +1,59 @@
+pluginManagement {
+	repositories {
+		// Gradle Plugin Portal 优先（包含 Shadow 等插件）
+		gradlePluginPortal()
+		
+		// Architectury 仓库必须在前面（包含 SNAPSHOT 版本）
+		maven {
+			name = 'Architectury'
+			url = 'https://maven.architectury.dev/'
+		}
+		maven {
+			name = 'Fabric'
+			url = 'https://maven.fabricmc.net/'
+		}
+		maven {
+			name = 'Forge'
+			url = 'https://maven.minecraftforge.net/'
+		}
+		
+		mavenCentral()
+		
+		// 中国镜像源（作为备用）
+		maven { url = 'https://mirrors.cloud.tencent.com/nexus/repository/maven-public/' }
+		maven { url = 'https://maven.aliyun.com/repository/public/' }
+		maven { url = 'https://repo.huaweicloud.com/repository/maven/' }
+	}
+}
+
+dependencyResolutionManagement {
+	repositories {
+		// 中国镜像源
+		maven { url = 'https://mirrors.cloud.tencent.com/nexus/repository/maven-public/' }
+		maven { url = 'https://maven.aliyun.com/repository/public/' }
+		maven { url = 'https://repo.huaweicloud.com/repository/maven/' }
+		
+		mavenCentral()
+		maven { url = 'https://maven.fabricmc.net/' }
+		maven { url = 'https://api.modrinth.com/maven' }
+		maven { url = 'https://maven.minecraftforge.net/' }
+
+		// 仅从官方仓库解析 Forge 组件，避免无意义的回退请求
+		exclusiveContent {
+			forRepository {
+				maven {
+					name = 'Forge'
+					url = 'https://maven.minecraftforge.net/'
+				}
+			}
+			filter {
+				includeGroup 'net.minecraftforge'
+				includeGroupByRegex 'net\\.minecraftforge\\..*'
+			}
+		}
+	}
+}
+rootProject.name = 'saomenu'
+// 包含子项目
+include 'common'
+include 'forge'

@@ -1,0 +1,58 @@
+# Gradle
+.gradle/
+**/.gradle/
+build/
+**/build/
+out/
+bin/
+
+# Architectury / Loom
+**/.architectury-transformer/
+**/loom-cache/
+
+# 开发运行目录与日志
+run/
+**/run/
+logs/
+**/logs/
+*.log
+
+# 构建产物（发布走 GitHub Releases，不入库）
+dist/
+preview_out/
+
+# IDE
+.idea/
+*.iml
+*.iws
+*.ipr
+.classpath
+.project
+.settings/
+.metadata/
+.factorypath
+*.launch
+.vscode/
+*.code-workspace
+
+# 本地覆盖
+local.properties
+gradle-local.properties
+
+# 系统文件
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# 临时文件
+*.tmp
+*.bak
+*.swp
+*.swo
+*.orig
+*.rej
+*~

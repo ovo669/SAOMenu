@@ -1,0 +1,23 @@
+{
+    "providers": [
+        {
+            "type": "ttf",
+            "file": "saomenu:saoui.ttf",
+            "shift": [0, 1],
+            "size": 8.0,
+            "oversample": 4.0
+        },
+        {
+            "type": "reference",
+            "id": "minecraft:include/space"
+        },
+        {
+            "type": "reference",
+            "id": "minecraft:include/default"
+        },
+        {
+            "type": "reference",
+            "id": "minecraft:include/unifont"
+        }
+    ]
+}

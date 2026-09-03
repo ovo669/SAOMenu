@@ -1,0 +1,22 @@
+{
+  "click": {
+    "sounds": [
+      "saomenu:click"
+    ]
+  },
+  "panel": {
+    "sounds": [
+      "saomenu:panel"
+    ]
+  },
+  "launcher": {
+    "sounds": [
+      "saomenu:launcher"
+    ]
+  },
+  "alert": {
+    "sounds": [
+      "saomenu:alert"
+    ]
+  }
+}

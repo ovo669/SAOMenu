@@ -1,0 +1,30 @@
+ architectury {
+    common("forge")
+}
+
+dependencies {
+    // Architectury API（作为 mod 依赖以启用 Loom 重映射）
+    modImplementation("dev.architectury:architectury:9.2.14")
+    compileOnly("net.fabricmc:fabric-loader:${project.loader_version}")
+    // @ExpectPlatform 注解(平台注入由 Architectury 插件在构建期完成)
+    compileOnly("dev.architectury:architectury-injectables:1.0.10")
+    // 配置持久化:运行时由 Minecraft 自带 Gson 提供
+    compileOnly("com.google.code.gson:gson:2.10.1")
+}
+ 
+sourceSets {
+    main {
+        // 无特殊排除设置
+    }
+}
+
+// 纯逻辑单元测试(布局数学)
+dependencies {
+    testImplementation platform('org.junit:junit-bom:5.10.2')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testImplementation 'com.google.code.gson:gson:2.10.1'
+}
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+}
