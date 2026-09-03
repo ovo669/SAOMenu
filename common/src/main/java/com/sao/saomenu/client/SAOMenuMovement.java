@@ -68,4 +68,42 @@ public final class SAOMenuMovement {
     private static boolean isDown(long window, int code) {
         return code != 0 && InputConstants.isKeyDown(window, code);
     }
+
+    // ------------------------------------------------------------ 自动疾跑
+
+    /** 自动疾跑正在程序性按住疾跑键(用于收手时只收回自己的强制)。 */
+    private static boolean sprintForced;
+
+    /**
+     * 按住 W 自动疾跑:程序性按下疾跑键,让原版 aiStep 的全套疾跑条件
+     * (饱食度 ≥ 6、撞墙停止、水面游泳疾跑、飞行疾跑)原样生效——
+     * 本模组不直接改写玩家的 sprinting 标志。
+     *
+     * <p>只在「想跑但疾跑键没按下」与「不想跑但此前是本方法按下的」两个
+     * 边沿触碰 KeyMapping,玩家物理按住疾跑键的状态不受影响;
+     * 界面打开时 KeyMapping 已被 releaseAll,keyUp 读不到按下,
+     * 因此菜单/背包打开时自动失效,关界面重新按住 W 即恢复。</p>
+     *
+     * <p>已知取舍:自动疾跑期间若玩家同时物理按着疾跑键并先松开 W,
+     * 疾跑键会被收回一次,需要重新按一下疾跑键才能恢复手动疾跑。</p>
+     */
+    public static void autoSprint() {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null) {
+            return;
+        }
+        KeyMapping sprint = mc.options.keySprint;
+        boolean want = SAOConfig.autoSprint() && mc.options.keyUp.isDown();
+        if (want) {
+            if (!sprint.isDown()) {
+                sprint.setDown(true);
+            }
+            sprintForced = true;
+        } else if (sprintForced) {
+            if (sprint.isDown()) {
+                sprint.setDown(false);
+            }
+            sprintForced = false;
+        }
+    }
 }

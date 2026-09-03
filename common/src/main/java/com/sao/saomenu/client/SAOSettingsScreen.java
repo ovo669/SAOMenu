@@ -227,7 +227,7 @@ public class SAOSettingsScreen extends Screen {
 
     private int rowCount(Page p) {
         return switch (p) {
-            case LAYOUT -> 6;
+            case LAYOUT -> 7;
             case COMBAT -> 7;
             case HUD -> 10;
             case THEME -> 2;
@@ -253,7 +253,8 @@ public class SAOSettingsScreen extends Screen {
                 case 2 -> "saomenu.config.scale";
                 case 3 -> "saomenu.config.bob";
                 case 4 -> "saomenu.config.follow_mouse";
-                default -> "saomenu.config.hide_hotbar";
+                case 5 -> "saomenu.config.hide_hotbar";
+                default -> "saomenu.config.auto_sprint";
             };
             case COMBAT -> switch (i) {
                 case 0 -> "saomenu.config.show_hud";
@@ -366,7 +367,11 @@ public class SAOSettingsScreen extends Screen {
 
     private boolean toggleGet(Page p, int i) {
         return switch (p) {
-            case LAYOUT -> i == 4 ? SAOConfig.anchorFollowMouse() : SAOConfig.hideHotbar();
+            case LAYOUT -> switch (i) {
+                case 4 -> SAOConfig.anchorFollowMouse();
+                case 6 -> SAOConfig.autoSprint();
+                default -> SAOConfig.hideHotbar();
+            };
             case COMBAT -> switch (i) {
                 case 0 -> SAOConfig.showHud();
                 case 1 -> SAOConfig.showAvatar();
@@ -394,6 +399,8 @@ public class SAOSettingsScreen extends Screen {
             case LAYOUT -> {
                 if (i == 4) {
                     SAOConfig.setAnchorFollowMouse(!SAOConfig.anchorFollowMouse());
+                } else if (i == 6) {
+                    SAOConfig.setAutoSprint(!SAOConfig.autoSprint());
                 } else {
                     SAOConfig.setHideHotbar(!SAOConfig.hideHotbar());
                 }

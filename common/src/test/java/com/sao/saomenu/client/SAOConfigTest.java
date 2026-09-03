@@ -143,6 +143,18 @@ class SAOConfigTest {
     }
 
     @Test
+    void autoSprintDefaultsOnAndPersists() {
+        assertTrue(SAOConfig.autoSprint(), "按住 W 自动疾跑默认开");
+        SAOConfig.setAutoSprint(false);
+        Path file = tmp.resolve("sprint.json");
+        SAOConfig.save(file);
+        SAOConfig.reset();
+        assertTrue(SAOConfig.autoSprint());
+        SAOConfig.load(file);
+        assertFalse(SAOConfig.autoSprint(), "关闭状态应写入并读回");
+    }
+
+    @Test
     void partialJsonFallsBackToDefaultsForMissingFields() throws Exception {
         Path file = tmp.resolve("partial.json");
         java.nio.file.Files.writeString(file,

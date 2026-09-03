@@ -18,5 +18,6 @@ public abstract class KeyboardInputMixin {
     @Inject(method = "tick(ZF)V", at = @At("TAIL"))
     private void saomenu$applyMovement(boolean sneaking, float slowFallingMultiplier, CallbackInfo ci) {
         SAOMenuMovement.apply((Input) (Object) this);
+        SAOMenuMovement.autoSprint();
     }
 }

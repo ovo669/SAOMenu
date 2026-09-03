@@ -41,6 +41,7 @@
   "saomenu.config.accent": "테마 색상",
   "saomenu.config.sounds": "효과음",
   "saomenu.config.hide_hotbar": "바닐라 핫바 숨기기",
+  "saomenu.config.auto_sprint": "자동 질주(W 홀드)",
   "saomenu.config.show_hud": "SAO HUD",
   "saomenu.config.show_avatar": "스킨 아바타",
   "saomenu.config.target_bar": "대상 체력 바",
