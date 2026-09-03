@@ -332,6 +332,12 @@ public final class SAOTargetBar3D {
             float angle = (float) Math.acos(Mth.clamp(look.dot(dir), -1.0, 1.0));
             float gate = lookFactor(angle,
                     angularRadius(le.getBbWidth(), le.getBbHeight(), dist));
+            // 隔墙目标不显示:相机到环带中心的视线被方块挡住时清零门控,
+            // 环带/菱形/名称血量文字与 Boss 横幅共用 gate,一起随淡出收掉。
+            // 只对已过视线锥的候选做 clip,避免对全场实体逐帧射线检测。
+            if (gate > 0.01f && !hasLineOfSight(mc, camPos, center)) {
+                gate = 0f;
+            }
             // Boss 横幅登记(视线门控,HUD 层绘制)
             if (SAOBossBanner.isBoss(le)) {
                 SAOBossBanner.seen(le, gate);
@@ -357,6 +363,25 @@ public final class SAOTargetBar3D {
                 en.setValue(a);
             }
         }
+    }
+
+    /**
+     * 相机到环带中心之间是否有无遮挡的视线。
+     *
+     * <p>用原版 {@code clip}(实体碰撞形状,不检测液体)做一次方块射线:
+     * 命中点到相机的距离小于到目标的距离,说明中间有方块挡着(隔墙透视)。
+     * 目标自身贴着的方块不会误挡——环带中心悬在生物腰身外侧,
+     * 命中点距离只会小于「目标距离 − 身宽半径」这类明显差距才判遮挡。
+     * clipContext 的 collidable=false 顺便排除碰撞形状存在但不可选中的方块
+     * (如发光地衣附着的方块)造成的边缘误判。</p>
+     */
+    private static boolean hasLineOfSight(Minecraft mc, Vec3 camPos, Vec3 target) {
+        net.minecraft.world.phys.BlockHitResult hit = mc.level.clip(
+                new net.minecraft.world.level.ClipContext(camPos, target,
+                        net.minecraft.world.level.ClipContext.Block.COLLIDER,
+                        net.minecraft.world.level.ClipContext.Fluid.NONE,
+                        null));
+        return hit.getType() == net.minecraft.world.phys.BlockHitResult.Type.MISS;
     }
 
     /** 当前队伍里在线(可渲染)队友的 UUID 集;无队伍为空集。 */
