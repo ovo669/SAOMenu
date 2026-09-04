@@ -471,11 +471,7 @@ public final class SAOTargetBar3D {
             // lb.y() 是菱形顶点的屏幕位置;两行文字整体码在它上方
             int hpY = Math.round(lb.y()) - font.lineHeight - 2;
             int nameY = hpY - font.lineHeight - 1;
-            // 深色底衬:亮天空/雪地上白字不糊进背景
-            g.fill(nameX - 2, nameY - 1, nameX + font.width(name) + 2,
-                    nameY + font.lineHeight, (Math.round(150 * lb.alpha()) << 24));
-            g.fill(hpX - 2, hpY - 1, hpX + font.width(hp) + 2,
-                    hpY + font.lineHeight, (Math.round(150 * lb.alpha()) << 24));
+            // 不画底衬:只靠字体自带投影与背景区分(与 SAO 原作观感一致)
             g.drawString(font, name, nameX, nameY, 0xF2F5F8 | a, true);
             g.drawString(font, hp, hpX, hpY,
                     (SAOTargetBar.hpColor(lb.frac()) & 0xFFFFFF) | a, true);

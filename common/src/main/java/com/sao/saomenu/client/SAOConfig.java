@@ -116,6 +116,8 @@ public final class SAOConfig {
     private static float foodPanelY = DEF_FOOD_PANEL_Y;
     /** 置顶物品(注册名),按加入顺序排在物品列最前。 */
     private static final java.util.List<String> pinnedItems = new java.util.ArrayList<>();
+    /** 手动拖动排出的顺序(注册名);与置顶无关,不带角标。 */
+    private static final java.util.List<String> itemOrder = new java.util.ArrayList<>();
     private static boolean hasOpenedSettings = false; // 是否打开过设置界面
 
     private static Path loadedFrom;
@@ -458,22 +460,33 @@ public final class SAOConfig {
         return i < 0 ? Integer.MAX_VALUE : i;
     }
 
+    /** 手动顺序号;不在自定义顺序里返回 {@link Integer#MAX_VALUE}。 */
+    public static int orderIndex(String id) {
+        int i = itemOrder.indexOf(id);
+        return i < 0 ? Integer.MAX_VALUE : i;
+    }
+
+    /** 自定义顺序快照(只读)。 */
+    public static java.util.List<String> itemOrder() {
+        return java.util.List.copyOf(itemOrder);
+    }
+
     /**
-     * 把 {@code from} 插到 {@code to} 的位置(右键拖动换序)。
+     * 整体覆盖自定义顺序(右键拖动换序时由菜单传入「当前完整显示顺序」)。
      *
-     * <p>两者若尚未置顶会先被追加进置顶序列——拖动本身就表达了
-     * 「我要管这两件的顺序」,否则未置顶物品之间无从排序。</p>
+     * <p>整表覆盖而不是只记两件:只记被拖的两件会让「已排序」与「未排序」
+     * 物品之间无从比较,必须给所有物品一个确定位次。这也是为什么
+     * 拖动不再顺带把物品置顶——置顶是独立的标记,不再被排序借用。</p>
      */
-    public static void reorderPinned(String from, String to) {
-        if (from == null || to == null || from.equals(to)) {
-            return;
+    public static void setItemOrder(java.util.List<String> order) {
+        itemOrder.clear();
+        if (order != null) {
+            for (String id : order) {
+                if (id != null && !id.isEmpty() && !itemOrder.contains(id)) {
+                    itemOrder.add(id);
+                }
+            }
         }
-        if (!pinnedItems.contains(to)) {
-            pinnedItems.add(to);
-        }
-        pinnedItems.remove(from);
-        int at = pinnedItems.indexOf(to);
-        pinnedItems.add(at < 0 ? pinnedItems.size() : at, from);
     }
 
     /** 切换置顶;返回切换后是否为置顶态。 */
@@ -553,6 +566,7 @@ public final class SAOConfig {
         foodPanelX = DEF_FOOD_PANEL_X;
         foodPanelY = DEF_FOOD_PANEL_Y;
         pinnedItems.clear();
+        itemOrder.clear();
     }
 
     // ------------------------------------------------------------ 持久化
@@ -621,6 +635,7 @@ public final class SAOConfig {
                     }
                 }
             }
+            setItemOrder(d.itemOrder);
             hasOpenedSettings = d.hasOpenedSettings; // 加载是否打开过设置
         } catch (IOException | JsonSyntaxException e) {
             SAOMenu.LOGGER.warn("[SAOMenu] config load failed, keeping defaults: {}", e.toString());
@@ -631,7 +646,7 @@ public final class SAOConfig {
         if (file == null) {
             return;
         }
-        Data d = new Data(anchorX, anchorY, menuScale, bobAmp, sounds, hideHotbar, showHud, showAvatar, anchorFollowMouse, showTargetBar, showDamageNumbers, saoToasts, showClock, clock24h, clockDate, showWelcome, deathShatter, deathShatterDensity, accentHue, mapPanelX, mapPanelY, mapPinned, clockPanelX, clockPanelY, clockScale, hasOpenedSettings, hotbarScale, thirdPersonMenu, showBossBanner, platePanelX, platePanelY, clockOnlyInMenu, autoSprint, hideVanillaHealth, foodPanelX, foodPanelY, new java.util.ArrayList<>(pinnedItems));
+        Data d = new Data(anchorX, anchorY, menuScale, bobAmp, sounds, hideHotbar, showHud, showAvatar, anchorFollowMouse, showTargetBar, showDamageNumbers, saoToasts, showClock, clock24h, clockDate, showWelcome, deathShatter, deathShatterDensity, accentHue, mapPanelX, mapPanelY, mapPinned, clockPanelX, clockPanelY, clockScale, hasOpenedSettings, hotbarScale, thirdPersonMenu, showBossBanner, platePanelX, platePanelY, clockOnlyInMenu, autoSprint, hideVanillaHealth, foodPanelX, foodPanelY, new java.util.ArrayList<>(pinnedItems), new java.util.ArrayList<>(itemOrder));
         try {
             Path parent = file.getParent();
             if (parent != null) {
@@ -685,13 +700,14 @@ public final class SAOConfig {
         float foodPanelX;
         float foodPanelY;
         java.util.List<String> pinnedItems;
+        java.util.List<String> itemOrder;
         boolean hasOpenedSettings;
 
         Data() {
-            this(DEF_ANCHOR_X, DEF_ANCHOR_Y, DEF_MENU_SCALE, DEF_BOB_AMP, true, true, true, true, true, true, true, true, true, true, false, true, true, DEF_SHATTER_DENSITY, DEF_ACCENT_HUE, DEF_MAP_PANEL_X, DEF_MAP_PANEL_Y, false, DEF_CLOCK_PANEL_X, DEF_CLOCK_PANEL_Y, DEF_CLOCK_SCALE, false, DEF_HOTBAR_SCALE, DEF_THIRD_PERSON, DEF_BOSS_BANNER, DEF_PLATE_PANEL_X, DEF_PLATE_PANEL_Y, DEF_CLOCK_MENU_ONLY, DEF_AUTO_SPRINT, DEF_HIDE_VANILLA_HEALTH, DEF_FOOD_PANEL_X, DEF_FOOD_PANEL_Y, new java.util.ArrayList<>());
+            this(DEF_ANCHOR_X, DEF_ANCHOR_Y, DEF_MENU_SCALE, DEF_BOB_AMP, true, true, true, true, true, true, true, true, true, true, false, true, true, DEF_SHATTER_DENSITY, DEF_ACCENT_HUE, DEF_MAP_PANEL_X, DEF_MAP_PANEL_Y, false, DEF_CLOCK_PANEL_X, DEF_CLOCK_PANEL_Y, DEF_CLOCK_SCALE, false, DEF_HOTBAR_SCALE, DEF_THIRD_PERSON, DEF_BOSS_BANNER, DEF_PLATE_PANEL_X, DEF_PLATE_PANEL_Y, DEF_CLOCK_MENU_ONLY, DEF_AUTO_SPRINT, DEF_HIDE_VANILLA_HEALTH, DEF_FOOD_PANEL_X, DEF_FOOD_PANEL_Y, new java.util.ArrayList<>(), new java.util.ArrayList<>());
         }
 
-        Data(float ax, float ay, float ms, float bob, boolean s, boolean hh, boolean sh, boolean av, boolean fm, boolean tb, boolean dn, boolean st, boolean sc, boolean c24, boolean cd, boolean sw, boolean ds, float dsd, float hue, float mx, float my, boolean mp, float cx, float cy, float cs, boolean hos, float hbs, boolean tpm, boolean bb, float ppx, float ppy, boolean cim, boolean asp, boolean hvh, float fpx, float fpy, java.util.List<String> pin) {
+        Data(float ax, float ay, float ms, float bob, boolean s, boolean hh, boolean sh, boolean av, boolean fm, boolean tb, boolean dn, boolean st, boolean sc, boolean c24, boolean cd, boolean sw, boolean ds, float dsd, float hue, float mx, float my, boolean mp, float cx, float cy, float cs, boolean hos, float hbs, boolean tpm, boolean bb, float ppx, float ppy, boolean cim, boolean asp, boolean hvh, float fpx, float fpy, java.util.List<String> pin, java.util.List<String> ord) {
             anchorX = ax;
             anchorY = ay;
             menuScale = ms;
@@ -729,6 +745,7 @@ public final class SAOConfig {
             foodPanelX = fpx;
             foodPanelY = fpy;
             pinnedItems = pin;
+            itemOrder = ord;
         }
     }
 }

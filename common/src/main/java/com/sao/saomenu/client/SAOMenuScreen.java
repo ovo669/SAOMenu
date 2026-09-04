@@ -486,19 +486,46 @@ public class SAOMenuScreen extends Screen {
                 tr(pinned ? "saomenu.inv.pinned" : "saomenu.inv.unpinned"));
     }
 
-    /** 右键拖动松手:把起点行的物品插到落点行的位置(两者都进置顶序列)。 */
+    /**
+     * 右键拖动松手:把起点行的物品移到落点行的位置。
+     *
+     * <p>做法是取当前完整显示顺序,把被拖物品搬到目标位置,整表写回配置——
+     * 只记被拖的两件会让「已排序」与「未排序」物品之间无从比较。
+     * 置顶是独立标记,拖动**不会**顺带置顶任何物品。</p>
+     */
     private void applyPinDrag(int fromRow, int toRow) {
-        if (fromRow < 0 || toRow < 0 || fromRow == toRow) {
+        if (fromRow < 0 || toRow < 0 || fromRow == toRow || selectedMain < 0) {
             return;
         }
-        String from = itemIdAtRow(fromRow);
-        String to = itemIdAtRow(toRow);
-        if (from == null || to == null) {
+        MenuItem[] items = activeItems(selectedMain);
+        int shown = visibleChildrenItem(items);
+        if (shown < 0 || items[shown].children() == null) {
             return;
         }
-        SAOConfig.reorderPinned(from, to);
+        // 用全量 children(不是窗口)构造顺序表,滚动时拖动也不会打乱屏幕外条目
+        MenuItem[] all = items[shown].children();
+        String fromId = itemIdAtRow(fromRow);
+        String toId = itemIdAtRow(toRow);
+        if (fromId == null || toId == null || fromId.equals(toId)) {
+            return;
+        }
+        java.util.List<String> order = new java.util.ArrayList<>();
+        for (MenuItem mi : all) {
+            ItemStack st = mi.stack();
+            if (st == null || st.isEmpty()) {
+                continue;
+            }
+            String id = net.minecraft.core.registries.BuiltInRegistries.ITEM
+                    .getKey(st.getItem()).toString();
+            if (!order.contains(id)) {
+                order.add(id);
+            }
+        }
+        order.remove(fromId);
+        int at = order.indexOf(toId);
+        order.add(at < 0 ? order.size() : at, fromId);
+        SAOConfig.setItemOrder(order);
         savePinConfig();
-        playPanel();
     }
 
     private String itemNameAtRow(int row) {
@@ -532,12 +559,17 @@ public class SAOMenuScreen extends Screen {
                             s, i));
                 }
             }
-            // 置顶物品排在最前(按置顶先后),其余保持槽位顺序
+            // 排序优先级:置顶(按置顶先后) → 手动拖动顺序 → 背包槽位
             list.sort((a, b) -> {
                 int pa = pinOrderOf(a.stack());
                 int pb = pinOrderOf(b.stack());
                 if (pa != pb) {
                     return Integer.compare(pa, pb);
+                }
+                int oa = orderIndexOf(a.stack());
+                int ob = orderIndexOf(b.stack());
+                if (oa != ob) {
+                    return Integer.compare(oa, ob);
                 }
                 return Integer.compare(a.invSlot(), b.invSlot());
             });
@@ -546,6 +578,15 @@ public class SAOMenuScreen extends Screen {
             list.add(new MenuItem("saomenu.inv.empty", "item_bag", Action.NONE));
         }
         return list.toArray(new MenuItem[0]);
+    }
+
+    /** 物品的手动顺序号;不在自定义顺序里为 MAX_VALUE。 */
+    private static int orderIndexOf(ItemStack st) {
+        if (st == null || st.isEmpty()) {
+            return Integer.MAX_VALUE;
+        }
+        return SAOConfig.orderIndex(net.minecraft.core.registries.BuiltInRegistries.ITEM
+                .getKey(st.getItem()).toString());
     }
 
     /** 物品的置顶顺序号;未置顶为 MAX_VALUE(排序时沉底)。 */
