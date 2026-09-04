@@ -350,6 +350,13 @@ public class SAOMenuScreen extends Screen {
      */
     /** 右键拖动换序:按下时的窗口行下标;-1 表示没在拖。 */
     private int pinDragFrom = -1;
+    /** 拖动中的物品(跟随鼠标的幽灵图标);null 表示没在拖。 */
+    private ItemStack pinDragStack;
+    /** 拖动中的鼠标位置(屏幕坐标,幽灵图标直接画在这里)。 */
+    private int pinDragMx;
+    private int pinDragMy;
+    /** 拖动起始时间(入场缩放动画)。 */
+    private long pinDragAt;
 
     /**
      * 命中物品条目的窗口行下标;没命中返回 -1。
@@ -383,6 +390,66 @@ public class SAOMenuScreen extends Screen {
             }
         }
         return -1;
+    }
+
+    /** 窗口行下标 → ItemStack;取不到返回 null。 */
+    private ItemStack stackAtRow(int row) {
+        if (selectedMain < 0 || row < 0) {
+            return null;
+        }
+        MenuItem[] items = activeItems(selectedMain);
+        int shown = visibleChildrenItem(items);
+        if (shown < 0 || items[shown].children() == null) {
+            return null;
+        }
+        MenuItem[] children = windowedChildren(items[shown].children());
+        if (row >= children.length) {
+            return null;
+        }
+        ItemStack st = children[row].stack();
+        return st == null || st.isEmpty() ? null : st;
+    }
+
+    /**
+     * 拖动中的幽灵图标:物品跟着鼠标走,落点行高亮一条主题色横线。
+     *
+     * <p>画在所有菜单元素之上(z=400),不参与菜单的浮动/缩放变换——
+     * 鼠标坐标本来就是屏幕坐标,跟着变换反而会与光标错位。</p>
+     */
+    private void renderPinDragGhost(GuiGraphics g, long now) {
+        if (pinDragFrom < 0 || pinDragStack == null) {
+            return;
+        }
+        // 入场:120ms 内从 0.6 弹到 1.0
+        float t = clamp01((now - pinDragAt) / 120f);
+        float scale = 0.6f + 0.4f * easeOutCubic(t);
+        int size = Math.round(20 * scale);
+
+        // 落点提示:悬停在另一行上时,该行左缘画一条主题色竖条
+        int target = pinRowAt(pinDragMx, pinDragMy);
+        if (target >= 0 && target != pinDragFrom) {
+            MenuItem[] items = activeItems(selectedMain);
+            int shown = visibleChildrenItem(items);
+            if (shown >= 0 && items[shown].children() != null) {
+                MenuItem[] children = windowedChildren(items[shown].children());
+                int anchorY = buttonY(selectedMain);
+                int childAnchor = MenuLayout.menuItemRectAt(this.width, this.height,
+                        items.length, baseAnchorX, anchorY, shown).centerY();
+                MenuLayout.Rect at = MenuLayout.childItemRectAt(this.width, this.height,
+                        children.length, baseAnchorX, childAnchor, target);
+                g.pose().pushPose();
+                g.pose().translate(0, 0, 400f);
+                // 插入位置示意:目标行上缘一条主题色横线
+                g.fill(at.x(), at.y() - 1, at.x() + at.w(), at.y() + 1, SAOConfig.accent());
+                g.pose().popPose();
+            }
+        }
+
+        g.pose().pushPose();
+        g.pose().translate(pinDragMx + 8f, pinDragMy + 8f, 400f);
+        g.pose().scale(size / 16f, size / 16f, 1f);
+        g.renderItem(pinDragStack, -8, -8);
+        g.pose().popPose();
     }
 
     /** 窗口行下标 → 物品注册名;取不到返回 null。 */
@@ -789,6 +856,8 @@ public class SAOMenuScreen extends Screen {
         if (infoOpen) {
             renderInfoDialog(g, mouseX, mouseY, globalAlpha, now);
         }
+        // 右键拖动排序的幽灵图标:画在最上层,跟随光标
+        renderPinDragGhost(g, now);
     }
 
 
@@ -1640,6 +1709,25 @@ public class SAOMenuScreen extends Screen {
             shaderAlpha(1f);
         }
 
+        // 置顶标识:左上角主题色小三角 + 白色高光,一眼分辨哪些被置顶
+        if (stack != null && !stack.isEmpty() && pinOrderOf(stack) != Integer.MAX_VALUE) {
+            int t = Math.max(3, Math.round(at.h() * 0.30f));
+            g.pose().pushPose();
+            g.pose().translate(0, 0, 260f);
+            // 阶梯直角三角:逐行递减宽度,贴条目左上角
+            for (int row = 0; row < t; row++) {
+                int wRow = t - row;
+                g.fill(at.x() + 1, at.y() + 1 + row, at.x() + 1 + wRow, at.y() + 2 + row,
+                        mulAlpha(SAOConfig.accent(), alpha));
+            }
+            // 斜边高光,深色条目上也看得清
+            for (int row = 0; row < t; row++) {
+                int xr = at.x() + (t - row);
+                g.fill(xr, at.y() + 1 + row, xr + 1, at.y() + 2 + row, mulAlpha(0xFFFFFFFF, alpha));
+            }
+            g.pose().popPose();
+        }
+
         // 文字(SAOUI 字体;动态 label(在线玩家名/语言键)二选一)
         Font f = this.font;
         String label = resolveLabel(labelKey);
@@ -1701,6 +1789,10 @@ public class SAOMenuScreen extends Screen {
             SAOHud.dragPlateTo(this.width, this.height, (int) mouseX, (int) mouseY);
             SAOHud.dragFoodTo(this.width, this.height, (int) mouseX, (int) mouseY);
         }
+        if (pinDragFrom >= 0) {
+            pinDragMx = (int) mouseX;
+            pinDragMy = (int) mouseY;
+        }
         super.mouseMoved(mouseX, mouseY);
     }
 
@@ -1709,6 +1801,7 @@ public class SAOMenuScreen extends Screen {
         if (button == 1 && pinDragFrom >= 0) {
             applyPinDrag(pinDragFrom, pinRowAt((int) mouseX, (int) mouseY));
             pinDragFrom = -1;
+            pinDragStack = null;
             return true;
         }
         SAOMapPanel.endDragAndSave();
@@ -1731,6 +1824,11 @@ public class SAOMenuScreen extends Screen {
                     togglePinAt(row);
                 } else {
                     pinDragFrom = row;
+                    pinDragStack = stackAtRow(row);
+                    pinDragMx = (int) mouseX;
+                    pinDragMy = (int) mouseY;
+                    pinDragAt = now();
+                    playPanel();
                 }
                 return true;
             }
