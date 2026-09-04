@@ -32,6 +32,7 @@ public final class SAONetwork {
     public static MessageType TEAM_SYNC;
     public static MessageType EQUIP_ITEM;
     public static MessageType DROP_ITEM;
+    public static MessageType DUAL_WIELD;
 
     private static boolean initialized;
 
@@ -51,5 +52,6 @@ public final class SAONetwork {
         TEAM_SYNC = CHANNEL.registerS2C("team_sync", TeamSyncS2C::new);
         EQUIP_ITEM = CHANNEL.registerC2S("equip_item", EquipItemC2S::new);
         DROP_ITEM = CHANNEL.registerC2S("drop_item", DropItemC2S::new);
+        DUAL_WIELD = CHANNEL.registerC2S("dual_wield", DualWieldC2S::new);
     }
 }

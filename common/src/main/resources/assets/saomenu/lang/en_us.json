@@ -132,5 +132,11 @@
   "saomenu.info.item": "Item",
   "saomenu.info.count": "Count",
   "saomenu.info.durability": "Durability",
-  "saomenu.info.enchant": "Enchant"
+  "saomenu.info.enchant": "Enchant",
+  "saomenu.skill.dual_wield": "Dual Wield",
+  "saomenu.skill.dual_wield.on": "Two swords equipped, battle mode on",
+  "saomenu.skill.dual_wield.no_ef": "Two swords equipped (Epic Fight not found)",
+  "saomenu.skill.dual_wield.need_two": "Need two swords in inventory",
+  "saomenu.inv.pinned": "Pinned",
+  "saomenu.inv.unpinned": "Unpinned"
 }

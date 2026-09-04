@@ -132,5 +132,11 @@
   "saomenu.info.durability": "耐久度",
   "saomenu.info.enchant": "エンチャント",
   "saomenu.config.clock_scale": "時計サイズ",
-  "saomenu.config.clock_menu_only": "時計はメニュー内のみ"
+  "saomenu.config.clock_menu_only": "時計はメニュー内のみ",
+  "saomenu.skill.dual_wield": "二刀流",
+  "saomenu.skill.dual_wield.on": "二刀を装備、戦闘モードへ",
+  "saomenu.skill.dual_wield.no_ef": "二刀を装備(Epic Fight 未検出)",
+  "saomenu.skill.dual_wield.need_two": "インベントリに剣が2本必要",
+  "saomenu.inv.pinned": "ピン留め",
+  "saomenu.inv.unpinned": "ピン留め解除"
 }

@@ -87,7 +87,8 @@ public class SAOMenuScreen extends Screen {
 
     private enum Action {
         NONE, OPEN_OPTIONS, OPEN_CONFIG, OPEN_STATS, OPEN_ADVANCEMENTS, CLOSE,
-        SWITCH_FRIENDS, SWITCH_PARTY, SHOW_EQUIP, SHOW_ITEMS, INVITE_PLAYER, LEAVE_TEAM, TOGGLE_MAP, SKILL
+        SWITCH_FRIENDS, SWITCH_PARTY, SHOW_EQUIP, SHOW_ITEMS, INVITE_PLAYER, LEAVE_TEAM, TOGGLE_MAP, SKILL,
+        DUAL_WIELD
     }
 
     /** 装备条目分类(第三列展示哪一栏装备)。 */
@@ -122,6 +123,7 @@ public class SAOMenuScreen extends Screen {
     private static final MenuItem[] PROFILE_ITEMS = {
             // 技能:装饰性剑技列表(本游戏暂无技能系统,点击提示暂未开放)
             new MenuItem("saomenu.menu.skill", "item_status", Action.NONE, new MenuItem[]{
+                    new MenuItem("saomenu.skill.dual_wield", "item_weapon", Action.DUAL_WIELD),
                     new MenuItem("saomenu.skill.horizontal", "item_weapon", Action.SKILL),
                     new MenuItem("saomenu.skill.slant", "item_weapon", Action.SKILL),
                     new MenuItem("saomenu.skill.vertical", "item_weapon", Action.SKILL),
@@ -340,7 +342,56 @@ public class SAOMenuScreen extends Screen {
         return PROFILE_ITEMS;
     }
 
-    /** 背包 → 菜单条目:快捷栏 + 主背包的非空物品;全空给占位行。 */
+    /**
+     * 右键命中物品条目 → 切换置顶。命中返回 true(吞掉右键)。
+     *
+     * <p>置顶按物品注册名记录,写入 {@code config/saomenu.json};
+     * 因为记的是「物品种类」而不是槽位,丢掉后重新捡起仍然置顶。</p>
+     */
+    private boolean togglePinAt(int mx, int my) {
+        if (selectedMain < 0) {
+            return false;
+        }
+        MenuItem[] items = activeItems(selectedMain);
+        int shown = visibleChildrenItem(items);
+        if (shown < 0 || items[shown].children() == null) {
+            return false;
+        }
+        // 与渲染/点击同一条路径:窗口化行 + childScroll 还原真实条目,
+        // 命中矩形按窗口行数计算(按全量算会整体错位,长列表必失灵)
+        MenuItem[] children = windowedChildren(items[shown].children());
+        int anchorY = buttonY(selectedMain);
+        int childAnchor = MenuLayout.menuItemRectAt(this.width, this.height, items.length,
+                baseAnchorX, anchorY, shown).centerY();
+        int lx = mx;
+        int ly = my;
+        for (int i = 0; i < children.length; i++) {
+            ItemStack st = children[i].stack();
+            if (st == null || st.isEmpty()) {
+                continue;
+            }
+            if (MenuLayout.childItemRectAt(this.width, this.height, children.length,
+                    baseAnchorX, childAnchor, i).contains(lx, ly)) {
+                String id = net.minecraft.core.registries.BuiltInRegistries.ITEM
+                        .getKey(st.getItem()).toString();
+                boolean pinned = SAOConfig.togglePinned(id);
+                java.nio.file.Path cfg = SAOConfig.path();
+                if (cfg == null) {
+                    cfg = mc().gameDirectory.toPath().resolve("config").resolve("saomenu.json");
+                }
+                SAOConfig.save(cfg);
+                invChildrenCacheAt = 0; // 立刻按新顺序重排
+                playPanel();
+                SAONotification.push(st.getHoverName().getString(),
+                        tr(pinned ? "saomenu.inv.pinned" : "saomenu.inv.unpinned"));
+                return true;
+            }
+        }
+        return false;
+    }
+
+
+    /** 背包 → 菜单条目:快捷栏 + 主背包的非空物品,置顶排最前;全空给占位行。 */
     private MenuItem[] invChildItems() {
         List<MenuItem> list = new ArrayList<>();
         Player p = mc().player;
@@ -352,11 +403,29 @@ public class SAOMenuScreen extends Screen {
                             s, i));
                 }
             }
+            // 置顶物品排在最前(按置顶先后),其余保持槽位顺序
+            list.sort((a, b) -> {
+                int pa = pinOrderOf(a.stack());
+                int pb = pinOrderOf(b.stack());
+                if (pa != pb) {
+                    return Integer.compare(pa, pb);
+                }
+                return Integer.compare(a.invSlot(), b.invSlot());
+            });
         }
         if (list.isEmpty()) {
             list.add(new MenuItem("saomenu.inv.empty", "item_bag", Action.NONE));
         }
         return list.toArray(new MenuItem[0]);
+    }
+
+    /** 物品的置顶顺序号;未置顶为 MAX_VALUE(排序时沉底)。 */
+    private static int pinOrderOf(ItemStack st) {
+        if (st == null || st.isEmpty()) {
+            return Integer.MAX_VALUE;
+        }
+        return SAOConfig.pinOrder(net.minecraft.core.registries.BuiltInRegistries.ITEM
+                .getKey(st.getItem()).toString());
     }
 
     /** 物品条目 children 缓存(1 秒刷新背包变化)。 */
@@ -1436,14 +1505,10 @@ public class SAOMenuScreen extends Screen {
         String label = e.empty() ? tr("saomenu.equip.empty") : e.stack().getHoverName().getString();
         int textX = iconX + iconSize + Math.round(at.h() * 0.18f);
         int maxW = at.x() + at.w() - textX - 6;
-        if (f.width(label) > maxW) {
-            label = f.plainSubstrByWidth(label, Math.max(0, maxW - f.width("…"))) + "…";
-        }
         int textY = at.y() + (at.h() - f.lineHeight) / 2;
-        g.drawString(f, label, textX, textY,
-                e.empty() ? mulAlpha(0xFF9A9DA0, alpha)
-                        : hovered ? mulAlpha(TEXT_ON_ORANGE, alpha) : mulAlpha(TEXT_DARK, alpha),
-                false);
+        int color = e.empty() ? mulAlpha(0xFF9A9DA0, alpha)
+                : hovered ? mulAlpha(TEXT_ON_ORANGE, alpha) : mulAlpha(TEXT_DARK, alpha);
+        drawScrollingLabel(g, f, label, textX, textY, maxW, color, hovered);
     }
 
     /**
@@ -1518,8 +1583,40 @@ public class SAOMenuScreen extends Screen {
         String label = resolveLabel(labelKey);
         int textX = at.x() + Math.round(at.h() * 0.18f) + iconSize + Math.round(at.h() * 0.22f);
         int textY = at.y() + (at.h() - f.lineHeight) / 2;
-        g.drawString(f, label, textX, textY,
-                hovered ? mulAlpha(TEXT_ON_ORANGE, alpha) : mulAlpha(TEXT_DARK, alpha), false);
+        int maxW = at.x() + at.w() - textX - Math.round(at.h() * 0.16f);
+        int color = hovered ? mulAlpha(TEXT_ON_ORANGE, alpha) : mulAlpha(TEXT_DARK, alpha);
+        drawScrollingLabel(g, f, label, textX, textY, maxW, color, hovered);
+    }
+
+    /**
+     * 条目文字:放得下就照常画;放不下时悬停行做跑马灯滚动,非悬停行截断加省略号。
+     *
+     * <p>滚动用剪裁窗口(enableScissor 的坐标是<b>物理像素</b>,须按 GUI 缩放换算),
+     * 平移量走 {@link SAOScrollText} 的纯函数,与渲染解耦、可单测。</p>
+     */
+    private void drawScrollingLabel(GuiGraphics g, Font f, String label,
+                                    int x, int y, int maxW, int color, boolean hovered) {
+        int textW = f.width(label);
+        if (maxW <= 0) {
+            return;
+        }
+        if (textW <= maxW) {
+            g.drawString(f, label, x, y, color, false);
+            return;
+        }
+        if (!hovered) {
+            String cut = f.plainSubstrByWidth(label, Math.max(0, maxW - f.width("…"))) + "…";
+            g.drawString(f, cut, x, y, color, false);
+            return;
+        }
+        // 逐字形滑动窗口:从 shift 像素处开始截 maxW 宽的一段。
+        // 不用 enableScissor——菜单整体有浮动/缩放 pose 变换,scissor 是
+        // 屏幕空间矩形,不跟随 pose,会把文字裁错位置
+        int shift = SAOScrollText.offset(textW, maxW, now(), label.hashCode());
+        String visible = SAOScrollText.window(label, f::width, shift, maxW);
+        if (!visible.isEmpty()) {
+            g.drawString(f, visible, x, y, color, false);
+        }
     }
 
     /** 圆角矩形填充:两条直条相交,四角各留 r×r 缺口(背景透出即圆角)。 */
@@ -1540,6 +1637,7 @@ public class SAOMenuScreen extends Screen {
             }
             SAOClockPanel.dragTo(this.width, this.height, (int) mouseX, (int) mouseY);
             SAOHud.dragPlateTo(this.width, this.height, (int) mouseX, (int) mouseY);
+            SAOHud.dragFoodTo(this.width, this.height, (int) mouseX, (int) mouseY);
         }
         super.mouseMoved(mouseX, mouseY);
     }
@@ -1549,6 +1647,7 @@ public class SAOMenuScreen extends Screen {
         SAOMapPanel.endDragAndSave();
         SAOClockPanel.endDragAndSave();
         SAOHud.endPlateDragAndSave();
+        SAOHud.endFoodDragAndSave();
         return super.mouseReleased(mouseX, mouseY, button);
     }
 
@@ -1556,6 +1655,13 @@ public class SAOMenuScreen extends Screen {
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (closing) {
             return false;
+        }
+        // 右键:物品条目置顶/取消置顶(Shift+右键 与 右键 同效,便于单手操作)
+        if (button == 1) {
+            if (togglePinAt((int) mouseX, (int) mouseY)) {
+                return true;
+            }
+            return super.mouseClicked(mouseX, mouseY, button);
         }
         if (button != 0) {
             return super.mouseClicked(mouseX, mouseY, button);
@@ -1573,6 +1679,12 @@ public class SAOMenuScreen extends Screen {
         // 落点存配置;与地图/时钟不重叠时互不干扰
         if (SAOConfig.showHud() && SAOHud.hitPlateGroup(mc(), this.width, this.height, mx, my)) {
             SAOHud.beginPlateDrag(mc(), this.width, this.height, mx, my);
+            return true;
+        }
+
+        // 饥饿条拖动(隐藏原版血条时才有这条自绘饥饿条)
+        if (SAOHud.hitFoodBar(this.width, this.height, mx, my)) {
+            SAOHud.beginFoodDrag(this.width, this.height, mx, my);
             return true;
         }
 
@@ -1792,6 +1904,21 @@ public class SAOMenuScreen extends Screen {
                 // 装饰性技能:本游戏暂无技能系统
                 playClick();
                 SAONotification.push(tr("saomenu.coming_soon"), "");
+            }
+            case DUAL_WIELD -> {
+                playClick();
+                Player p = mc().player;
+                int[] slots = p == null ? null : SAODualWield.findTwoSwords(p);
+                if (slots == null) {
+                    SAONotification.push(tr("saomenu.skill.dual_wield.need_two"), "");
+                } else {
+                    new com.sao.saomenu.party.DualWieldC2S(slots[0], slots[1]).sendToServer();
+                    SAODualWield.toBattleMode();
+                    SAONotification.push(tr("saomenu.skill.dual_wield"),
+                            SAODualWield.epicFightPresent()
+                                    ? tr("saomenu.skill.dual_wield.on")
+                                    : tr("saomenu.skill.dual_wield.no_ef"));
+                }
             }
             case SHOW_ITEMS -> playClick(); // 实际展开由 children 分支处理,此处兜底
             case OPEN_OPTIONS -> {

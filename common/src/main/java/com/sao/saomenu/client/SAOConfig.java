@@ -53,6 +53,10 @@ public final class SAOConfig {
     /** 隐藏原版血条,饥饿条居中(氧气泡保留),默认开。 */
     public static final boolean DEF_HIDE_VANILLA_HEALTH = true;
 
+    /** 饥饿条锚点默认值:X 居中、Y 贴原版行高(与未拖动前位置一致)。 */
+    public static final float DEF_FOOD_PANEL_X = 0.5f;
+    public static final float DEF_FOOD_PANEL_Y = 1f;
+
     /** 地图面板默认锚点(屏幕比例;参照动画里地图卡浮在人物左前方)。 */
     public static final float DEF_MAP_PANEL_X = 0.10f;
     public static final float DEF_MAP_PANEL_Y = 0.28f;
@@ -108,6 +112,10 @@ public final class SAOConfig {
     private static boolean clockOnlyInMenu = DEF_CLOCK_MENU_ONLY;
     private static boolean autoSprint = DEF_AUTO_SPRINT;
     private static boolean hideVanillaHealth = DEF_HIDE_VANILLA_HEALTH;
+    private static float foodPanelX = DEF_FOOD_PANEL_X;
+    private static float foodPanelY = DEF_FOOD_PANEL_Y;
+    /** 置顶物品(注册名),按加入顺序排在物品列最前。 */
+    private static final java.util.List<String> pinnedItems = new java.util.ArrayList<>();
     private static boolean hasOpenedSettings = false; // 是否打开过设置界面
 
     private static Path loadedFrom;
@@ -415,6 +423,53 @@ public final class SAOConfig {
         hideVanillaHealth = v;
     }
 
+    /** 饥饿条锚点(屏幕比例)。 */
+    public static float foodPanelX() {
+        return foodPanelX;
+    }
+
+    public static float foodPanelY() {
+        return foodPanelY;
+    }
+
+    public static void setFoodPanelX(float v) {
+        foodPanelX = clamp(v, 0f, 1f);
+    }
+
+    public static void setFoodPanelY(float v) {
+        foodPanelY = clamp(v, 0f, 1f);
+    }
+
+    /** 置顶物品注册名列表(只读快照)。 */
+    public static java.util.List<String> pinnedItems() {
+        return java.util.List.copyOf(pinnedItems);
+    }
+
+    /** 该物品是否已置顶。 */
+    public static boolean isPinned(String id) {
+        return pinnedItems.contains(id);
+    }
+
+    /**
+     * 置顶顺序号;未置顶返回 {@link Integer#MAX_VALUE}(排序时自然沉底)。
+     */
+    public static int pinOrder(String id) {
+        int i = pinnedItems.indexOf(id);
+        return i < 0 ? Integer.MAX_VALUE : i;
+    }
+
+    /** 切换置顶;返回切换后是否为置顶态。 */
+    public static boolean togglePinned(String id) {
+        if (id == null || id.isEmpty()) {
+            return false;
+        }
+        if (pinnedItems.remove(id)) {
+            return false;
+        }
+        pinnedItems.add(id);
+        return true;
+    }
+
     public static void setSaoToasts(boolean v) {
         saoToasts = v;
     }
@@ -477,6 +532,9 @@ public final class SAOConfig {
         clockOnlyInMenu = DEF_CLOCK_MENU_ONLY;
         autoSprint = DEF_AUTO_SPRINT;
         hideVanillaHealth = DEF_HIDE_VANILLA_HEALTH;
+        foodPanelX = DEF_FOOD_PANEL_X;
+        foodPanelY = DEF_FOOD_PANEL_Y;
+        pinnedItems.clear();
     }
 
     // ------------------------------------------------------------ 持久化
@@ -535,6 +593,16 @@ public final class SAOConfig {
             clockOnlyInMenu = d.clockOnlyInMenu;
             autoSprint = d.autoSprint;
             hideVanillaHealth = d.hideVanillaHealth;
+            setFoodPanelX(d.foodPanelX);
+            setFoodPanelY(d.foodPanelY);
+            pinnedItems.clear();
+            if (d.pinnedItems != null) {
+                for (String id : d.pinnedItems) {
+                    if (id != null && !id.isEmpty() && !pinnedItems.contains(id)) {
+                        pinnedItems.add(id);
+                    }
+                }
+            }
             hasOpenedSettings = d.hasOpenedSettings; // 加载是否打开过设置
         } catch (IOException | JsonSyntaxException e) {
             SAOMenu.LOGGER.warn("[SAOMenu] config load failed, keeping defaults: {}", e.toString());
@@ -545,7 +613,7 @@ public final class SAOConfig {
         if (file == null) {
             return;
         }
-        Data d = new Data(anchorX, anchorY, menuScale, bobAmp, sounds, hideHotbar, showHud, showAvatar, anchorFollowMouse, showTargetBar, showDamageNumbers, saoToasts, showClock, clock24h, clockDate, showWelcome, deathShatter, deathShatterDensity, accentHue, mapPanelX, mapPanelY, mapPinned, clockPanelX, clockPanelY, clockScale, hasOpenedSettings, hotbarScale, thirdPersonMenu, showBossBanner, platePanelX, platePanelY, clockOnlyInMenu, autoSprint, hideVanillaHealth);
+        Data d = new Data(anchorX, anchorY, menuScale, bobAmp, sounds, hideHotbar, showHud, showAvatar, anchorFollowMouse, showTargetBar, showDamageNumbers, saoToasts, showClock, clock24h, clockDate, showWelcome, deathShatter, deathShatterDensity, accentHue, mapPanelX, mapPanelY, mapPinned, clockPanelX, clockPanelY, clockScale, hasOpenedSettings, hotbarScale, thirdPersonMenu, showBossBanner, platePanelX, platePanelY, clockOnlyInMenu, autoSprint, hideVanillaHealth, foodPanelX, foodPanelY, new java.util.ArrayList<>(pinnedItems));
         try {
             Path parent = file.getParent();
             if (parent != null) {
@@ -596,13 +664,16 @@ public final class SAOConfig {
         boolean clockOnlyInMenu;
         boolean autoSprint;
         boolean hideVanillaHealth;
+        float foodPanelX;
+        float foodPanelY;
+        java.util.List<String> pinnedItems;
         boolean hasOpenedSettings;
 
         Data() {
-            this(DEF_ANCHOR_X, DEF_ANCHOR_Y, DEF_MENU_SCALE, DEF_BOB_AMP, true, true, true, true, true, true, true, true, true, true, false, true, true, DEF_SHATTER_DENSITY, DEF_ACCENT_HUE, DEF_MAP_PANEL_X, DEF_MAP_PANEL_Y, false, DEF_CLOCK_PANEL_X, DEF_CLOCK_PANEL_Y, DEF_CLOCK_SCALE, false, DEF_HOTBAR_SCALE, DEF_THIRD_PERSON, DEF_BOSS_BANNER, DEF_PLATE_PANEL_X, DEF_PLATE_PANEL_Y, DEF_CLOCK_MENU_ONLY, DEF_AUTO_SPRINT, DEF_HIDE_VANILLA_HEALTH);
+            this(DEF_ANCHOR_X, DEF_ANCHOR_Y, DEF_MENU_SCALE, DEF_BOB_AMP, true, true, true, true, true, true, true, true, true, true, false, true, true, DEF_SHATTER_DENSITY, DEF_ACCENT_HUE, DEF_MAP_PANEL_X, DEF_MAP_PANEL_Y, false, DEF_CLOCK_PANEL_X, DEF_CLOCK_PANEL_Y, DEF_CLOCK_SCALE, false, DEF_HOTBAR_SCALE, DEF_THIRD_PERSON, DEF_BOSS_BANNER, DEF_PLATE_PANEL_X, DEF_PLATE_PANEL_Y, DEF_CLOCK_MENU_ONLY, DEF_AUTO_SPRINT, DEF_HIDE_VANILLA_HEALTH, DEF_FOOD_PANEL_X, DEF_FOOD_PANEL_Y, new java.util.ArrayList<>());
         }
 
-        Data(float ax, float ay, float ms, float bob, boolean s, boolean hh, boolean sh, boolean av, boolean fm, boolean tb, boolean dn, boolean st, boolean sc, boolean c24, boolean cd, boolean sw, boolean ds, float dsd, float hue, float mx, float my, boolean mp, float cx, float cy, float cs, boolean hos, float hbs, boolean tpm, boolean bb, float ppx, float ppy, boolean cim, boolean asp, boolean hvh) {
+        Data(float ax, float ay, float ms, float bob, boolean s, boolean hh, boolean sh, boolean av, boolean fm, boolean tb, boolean dn, boolean st, boolean sc, boolean c24, boolean cd, boolean sw, boolean ds, float dsd, float hue, float mx, float my, boolean mp, float cx, float cy, float cs, boolean hos, float hbs, boolean tpm, boolean bb, float ppx, float ppy, boolean cim, boolean asp, boolean hvh, float fpx, float fpy, java.util.List<String> pin) {
             anchorX = ax;
             anchorY = ay;
             menuScale = ms;
@@ -637,6 +708,9 @@ public final class SAOConfig {
             clockOnlyInMenu = cim;
             autoSprint = asp;
             hideVanillaHealth = hvh;
+            foodPanelX = fpx;
+            foodPanelY = fpy;
+            pinnedItems = pin;
         }
     }
 }

@@ -132,5 +132,11 @@
   "saomenu.info.item": "物品",
   "saomenu.info.count": "数量",
   "saomenu.info.durability": "耐久",
-  "saomenu.info.enchant": "附魔"
+  "saomenu.info.enchant": "附魔",
+  "saomenu.skill.dual_wield": "二刀流",
+  "saomenu.skill.dual_wield.on": "已装备双剑,切入战斗模式",
+  "saomenu.skill.dual_wield.no_ef": "已装备双剑(未检测到史诗战斗)",
+  "saomenu.skill.dual_wield.need_two": "背包里需要两把剑",
+  "saomenu.inv.pinned": "已置顶",
+  "saomenu.inv.unpinned": "已取消置顶"
 }

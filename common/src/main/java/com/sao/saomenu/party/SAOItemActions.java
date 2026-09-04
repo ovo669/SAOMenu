@@ -83,6 +83,56 @@ public final class SAOItemActions {
         }
     }
 
+    /**
+     * 二刀流:把两个背包槽位的剑放到主手与副手。
+     *
+     * <p>主手用「切换选中槽」而非搬运物品——剑本来就在背包里,
+     * 直接把快捷栏选中位指过去最省事;剑不在快捷栏时才与选中槽互换。
+     * 副手原有物品退回背包(放不下掉地上)。</p>
+     */
+    public static void handleDualWield(ServerPlayer player, int mainSlot, int offSlot) {
+        // 副手哨兵:-2 表示"这把剑已经在副手上",无需搬动
+        boolean offAlready = offSlot == -2;
+        if ((!offAlready && (offSlot < 0 || offSlot >= 36))
+                || mainSlot == offSlot || mainSlot < -2 || mainSlot >= 36
+                || (mainSlot == -2 && offAlready)) {
+            return;
+        }
+        var inv = player.getInventory();
+        // 主手哨兵:两把都已在手上(主手剑+副手剑)就只剩切模式的事
+        if (mainSlot == -2 && offAlready) {
+            return;
+        }
+        ItemStack off = offAlready ? inv.offhand.get(0) : inv.getItem(offSlot);
+        if (off.isEmpty()) {
+            return;
+        }
+        if (!offAlready) {
+            // 副手位腾空:原有物品先退回背包
+            ItemStack oldOff = inv.offhand.get(0);
+            inv.offhand.set(0, off.copy());
+            inv.setItem(offSlot, ItemStack.EMPTY);
+            if (!oldOff.isEmpty() && !inv.add(oldOff)) {
+                player.drop(oldOff, false);
+            }
+        }
+        // 主手:哨兵(已在主手)直接保持;快捷栏内直接选中;否则与选中槽互换
+        if (mainSlot == -2) {
+            // 主手已是剑,无需搬动
+        } else if (mainSlot < 9) {
+            inv.selected = mainSlot;
+        } else if (mainSlot != inv.selected) {
+            ItemStack main = inv.getItem(mainSlot);
+            if (main.isEmpty()) {
+                return;
+            }
+            ItemStack displaced = inv.getItem(inv.selected);
+            inv.setItem(inv.selected, main.copy());
+            inv.setItem(mainSlot, displaced);
+        }
+        playEquip(player, 1.2f);
+    }
+
     private static void playEquip(ServerPlayer player, float pitch) {
         player.level().playSound(null, player.blockPosition(),
                 SoundEvents.ARMOR_EQUIP_GENERIC, SoundSource.PLAYERS, 0.8f, pitch);

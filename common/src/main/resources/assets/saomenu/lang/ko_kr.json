@@ -132,5 +132,11 @@
   "saomenu.info.durability": "내구도",
   "saomenu.info.enchant": "인챈트",
   "saomenu.config.clock_scale": "시계 크기",
-  "saomenu.config.clock_menu_only": "시계는 메뉴에서만"
+  "saomenu.config.clock_menu_only": "시계는 메뉴에서만",
+  "saomenu.skill.dual_wield": "이도류",
+  "saomenu.skill.dual_wield.on": "쌍검 장착, 전투 모드 전환",
+  "saomenu.skill.dual_wield.no_ef": "쌍검 장착(Epic Fight 없음)",
+  "saomenu.skill.dual_wield.need_two": "인벤토리에 검 2개 필요",
+  "saomenu.inv.pinned": "고정됨",
+  "saomenu.inv.unpinned": "고정 해제"
 }

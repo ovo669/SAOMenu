@@ -167,6 +167,41 @@ class SAOConfigTest {
     }
 
     @Test
+    void pinnedItemsPersistAndSort() {
+        SAOConfig.togglePinned("minecraft:diamond_sword");
+        SAOConfig.togglePinned("minecraft:golden_apple");
+        assertTrue(SAOConfig.isPinned("minecraft:diamond_sword"));
+        assertTrue(SAOConfig.pinOrder("minecraft:diamond_sword")
+                        < SAOConfig.pinOrder("minecraft:golden_apple"),
+                "先置顶的排更前");
+        assertEquals(Integer.MAX_VALUE, SAOConfig.pinOrder("minecraft:stick"), "未置顶沉底");
+        Path file = tmp.resolve("pinned.json");
+        SAOConfig.save(file);
+        SAOConfig.reset();
+        assertTrue(SAOConfig.pinnedItems().isEmpty(), "reset 清空置顶");
+        SAOConfig.load(file);
+        assertTrue(SAOConfig.isPinned("minecraft:diamond_sword"), "置顶应写入并读回");
+        assertTrue(SAOConfig.isPinned("minecraft:diamond_sword"), "置顶应写入并读回");
+        assertTrue(!SAOConfig.togglePinned("minecraft:diamond_sword"), "再切换应取消置顶(返回 false)");
+        assertTrue(!SAOConfig.isPinned("minecraft:diamond_sword"));
+        assertEquals(1, SAOConfig.pinnedItems().size());
+    }
+
+    @Test
+    void foodAnchorDefaultsToCenteredVanillaRow() {
+        assertEquals(0.5f, SAOConfig.foodPanelX(), "默认水平居中");
+        assertEquals(1f, SAOConfig.foodPanelY(), "默认贴原版行高");
+        SAOConfig.setFoodPanelX(0.25f);
+        SAOConfig.setFoodPanelY(0.5f);
+        Path file = tmp.resolve("food.json");
+        SAOConfig.save(file);
+        SAOConfig.reset();
+        SAOConfig.load(file);
+        assertEquals(0.25f, SAOConfig.foodPanelX());
+        assertEquals(0.5f, SAOConfig.foodPanelY(), "饥饿条锚点应持久化");
+    }
+
+    @Test
     void partialJsonFallsBackToDefaultsForMissingFields() throws Exception {
         Path file = tmp.resolve("partial.json");
         java.nio.file.Files.writeString(file,

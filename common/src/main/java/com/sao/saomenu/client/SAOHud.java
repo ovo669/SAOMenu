@@ -208,9 +208,9 @@ public final class SAOHud {
         Minecraft mc = Minecraft.getInstance();
         int w = g.guiWidth();
         int h = g.guiHeight();
-        int y = h - 39;
-        // 10 个图标,步进 8px,末格宽 9px → 整条 81px,水平居中
-        int x0 = (w - 81) / 2;
+        // 锚点驱动:默认 (0.5, 1.0) 等于「水平居中 + 原版行高」,可拖动
+        int x0 = foodX(w);
+        int y = foodY(h);
         int food = p.getFoodData().getFoodLevel();
         boolean hungerFx = p.hasEffect(net.minecraft.world.effect.MobEffects.HUNGER);
         RenderSystem.enableBlend();
@@ -236,6 +236,76 @@ public final class SAOHud {
         for (int i = 0; i < total; i++) {
             g.blit(GUI_ICONS, x0 + i * 8, yAir, i < full ? 16 : 25, 18, 9, 9);
         }
+    }
+
+    // ------------------------------------------------------------ 饥饿条锚点与拖动
+
+    /** 饥饿条整条宽度:10 格 × 8px 步进 + 末格多出的 1px。 */
+    public static final int FOOD_W = 81;
+    /** 饥饿条高度(单行图标)。 */
+    public static final int FOOD_H = 9;
+    /** 拖动命中框上探量:把上方氧气泡行也算进可抓范围。 */
+    private static final int FOOD_HIT_TOP = 10;
+
+    /** 饥饿条左缘 X(锚点比例换算)。 */
+    public static int foodX(int screenW) {
+        float fx = Mth.clamp(SAOConfig.foodPanelX(), 0f, 1f);
+        return Math.round(fx * (screenW - FOOD_W));
+    }
+
+    /** 饥饿条顶缘 Y;锚点 1.0 落在原版行高(屏底上方 39px)。 */
+    public static int foodY(int screenH) {
+        float fy = Mth.clamp(SAOConfig.foodPanelY(), 0f, 1f);
+        int lo = FOOD_HIT_TOP;
+        int hi = screenH - 39;
+        return Math.round(lo + fy * (hi - lo));
+    }
+
+    private static boolean foodDragging;
+    private static float foodGrabFx;
+    private static float foodGrabFy;
+    private static boolean foodDraggedSinceDown;
+
+    /** 命中检测:饥饿条(含上方氧气泡行)范围内。 */
+    public static boolean hitFoodBar(int screenW, int screenH, int mx, int my) {
+        if (!SAOConfig.hideVanillaHealth()) {
+            return false;
+        }
+        int fx = foodX(screenW);
+        int fy = foodY(screenH) - FOOD_HIT_TOP;
+        return mx >= fx && mx < fx + FOOD_W && my >= fy && my < fy + FOOD_H + FOOD_HIT_TOP;
+    }
+
+    public static void beginFoodDrag(int screenW, int screenH, int mx, int my) {
+        foodGrabFx = (mx - foodX(screenW)) / (float) FOOD_W;
+        foodGrabFy = (my - foodY(screenH)) / (float) FOOD_H;
+        foodDragging = true;
+        foodDraggedSinceDown = false;
+    }
+
+    public static void dragFoodTo(int screenW, int screenH, int mx, int my) {
+        if (!foodDragging) {
+            return;
+        }
+        float fx = (mx - foodGrabFx * FOOD_W) / (float) Math.max(1, screenW - FOOD_W);
+        int lo = FOOD_HIT_TOP;
+        int hi = screenH - 39;
+        float fy = (my - foodGrabFy * FOOD_H - lo) / (float) Math.max(1, hi - lo);
+        SAOConfig.setFoodPanelX(fx);
+        SAOConfig.setFoodPanelY(fy);
+        foodDraggedSinceDown = true;
+    }
+
+    public static void endFoodDragAndSave() {
+        if (foodDragging && foodDraggedSinceDown) {
+            java.nio.file.Path p = SAOConfig.path();
+            if (p == null) {
+                p = Minecraft.getInstance().gameDirectory.toPath()
+                        .resolve("config").resolve("saomenu.json");
+            }
+            SAOConfig.save(p);
+        }
+        foodDragging = false;
     }
 
     /** 低血量屏幕边缘红晕:血量越低越浓,呼吸式闪烁。 */
