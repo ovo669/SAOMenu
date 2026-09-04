@@ -54,36 +54,48 @@ public final class SAODualWield {
      *
      * @return {@code [主手槽, 副手槽]};找不到两把剑时返回 null
      */
+    /** 副手槽哨兵:表示「这把剑已经在副手上」,不是背包下标。 */
+    public static final int OFFHAND = -2;
+
+    /**
+     * 挑两把剑的槽位。
+     *
+     * <p>返回 {@code [主手来源, 副手来源]};槽位是背包下标 0-35,
+     * 或哨兵 {@link #OFFHAND}(该手已经握着剑)。找不到两把返回 null。</p>
+     *
+     * <p>此前把「主手已握剑」记成 {@code inventory.selected}(0-8),
+     * 与「背包扫描时跳过该下标」混在一起,当剑在副手 + 背包各一把时
+     * 计数会漏一把,表现为「副手有剑却提示需要两把」。现在主手/副手
+     * 各自独立判定,背包扫描只跳过真正已被占用的下标。</p>
+     */
     public static int[] findTwoSwords(Player p) {
-        int first = -1;
-        int second = -1;
-        boolean offhandIsSword = isSword(p.getOffhandItem());
-        // 已经握在主手/副手的剑优先保留,避免无谓换手
-        if (isSword(p.getMainHandItem())) {
-            first = p.getInventory().selected;
+        boolean mainIsSword = isSword(p.getMainHandItem());
+        boolean offIsSword = isSword(p.getOffhandItem());
+        // 两手都是剑:什么都不用搬,只切模式
+        if (mainIsSword && offIsSword) {
+            return new int[]{OFFHAND, OFFHAND};
         }
-        // 副手槽(40)用 -2 标记;服务端 handleDualWield 认得这个哨兵值
-        if (offhandIsSword) {
-            if (first < 0) {
-                first = -2;
-            } else {
-                second = -2;
-            }
-        }
+        int selected = p.getInventory().selected;
+        // 背包里所有剑的下标(排除主手当前槽——那把已经算在 mainIsSword 里)
+        java.util.List<Integer> spare = new java.util.ArrayList<>();
         for (int i = 0; i < 36; i++) {
-            if (i == first) {
+            if (mainIsSword && i == selected) {
                 continue;
             }
             if (isSword(p.getInventory().getItem(i))) {
-                if (first < 0) {
-                    first = i;
-                } else {
-                    second = i;
-                    break;
-                }
+                spare.add(i);
             }
         }
-        return (first >= 0 && second >= 0) ? new int[]{first, second} : null;
+        if (offIsSword) {
+            // 副手已有剑:主手要么已是剑(上面已返回),要么从背包补一把
+            return spare.isEmpty() ? null : new int[]{spare.get(0), OFFHAND};
+        }
+        if (mainIsSword) {
+            // 主手已是剑:副手从背包补一把
+            return spare.isEmpty() ? null : new int[]{OFFHAND, spare.get(0)};
+        }
+        // 两手都不是剑:背包里得有两把
+        return spare.size() >= 2 ? new int[]{spare.get(0), spare.get(1)} : null;
     }
 
     /** 是否可作为二刀流的一把「剑」(原版剑 + 其他模组的剑类工具)。 */
@@ -99,6 +111,27 @@ public final class SAODualWield {
                 .getKey(stack.getItem()).getPath();
         return stack.getItem() instanceof TieredItem
                 && (id.contains("sword") || id.contains("blade") || id.contains("katana"));
+    }
+
+    /** 待切战斗模式的剩余 tick;>0 时每 tick 递减,归零那帧执行切换。 */
+    private static int pendingModeTicks;
+
+    /**
+     * 请求切战斗模式(延后 3 tick 执行)。
+     *
+     * <p>不能立即切:装备是服务端权威的,发包后主手的剑要等服务端回传才到位;
+     * 而 Epic Fight 进战斗模式时按「当前主手武器」解析动作集,切太早会按
+     * 空手解析,表现为进了战斗模式却没有持剑架势。</p>
+     */
+    public static void requestBattleMode() {
+        pendingModeTicks = 3;
+    }
+
+    /** 客户端每 tick 调用(SAOKeybinds 挂钩):到点执行延后的模式切换。 */
+    public static void tick() {
+        if (pendingModeTicks > 0 && --pendingModeTicks == 0) {
+            toBattleMode();
+        }
     }
 
     /**

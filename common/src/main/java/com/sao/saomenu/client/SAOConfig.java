@@ -458,6 +458,24 @@ public final class SAOConfig {
         return i < 0 ? Integer.MAX_VALUE : i;
     }
 
+    /**
+     * 把 {@code from} 插到 {@code to} 的位置(右键拖动换序)。
+     *
+     * <p>两者若尚未置顶会先被追加进置顶序列——拖动本身就表达了
+     * 「我要管这两件的顺序」,否则未置顶物品之间无从排序。</p>
+     */
+    public static void reorderPinned(String from, String to) {
+        if (from == null || to == null || from.equals(to)) {
+            return;
+        }
+        if (!pinnedItems.contains(to)) {
+            pinnedItems.add(to);
+        }
+        pinnedItems.remove(from);
+        int at = pinnedItems.indexOf(to);
+        pinnedItems.add(at < 0 ? pinnedItems.size() : at, from);
+    }
+
     /** 切换置顶;返回切换后是否为置顶态。 */
     public static boolean togglePinned(String id) {
         if (id == null || id.isEmpty()) {

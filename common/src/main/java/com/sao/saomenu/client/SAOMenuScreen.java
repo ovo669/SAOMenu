@@ -348,23 +348,30 @@ public class SAOMenuScreen extends Screen {
      * <p>置顶按物品注册名记录,写入 {@code config/saomenu.json};
      * 因为记的是「物品种类」而不是槽位,丢掉后重新捡起仍然置顶。</p>
      */
-    private boolean togglePinAt(int mx, int my) {
+    /** 右键拖动换序:按下时的窗口行下标;-1 表示没在拖。 */
+    private int pinDragFrom = -1;
+
+    /**
+     * 命中物品条目的窗口行下标;没命中返回 -1。
+     *
+     * <p>命中几何必须与渲染同源:窗口化行 + 菜单本地坐标。</p>
+     */
+    private int pinRowAt(int mx, int my) {
         if (selectedMain < 0) {
-            return false;
+            return -1;
         }
         MenuItem[] items = activeItems(selectedMain);
         int shown = visibleChildrenItem(items);
         if (shown < 0 || items[shown].children() == null) {
-            return false;
+            return -1;
         }
-        // 与渲染/点击同一条路径:窗口化行 + childScroll 还原真实条目,
-        // 命中矩形按窗口行数计算(按全量算会整体错位,长列表必失灵)
         MenuItem[] children = windowedChildren(items[shown].children());
         int anchorY = buttonY(selectedMain);
         int childAnchor = MenuLayout.menuItemRectAt(this.width, this.height, items.length,
                 baseAnchorX, anchorY, shown).centerY();
-        int lx = mx;
-        int ly = my;
+        // 菜单组有浮动/缩放变换:命中必须先逆变换回菜单本地坐标
+        int lx = localX(mx);
+        int ly = localY(my);
         for (int i = 0; i < children.length; i++) {
             ItemStack st = children[i].stack();
             if (st == null || st.isEmpty()) {
@@ -372,22 +379,77 @@ public class SAOMenuScreen extends Screen {
             }
             if (MenuLayout.childItemRectAt(this.width, this.height, children.length,
                     baseAnchorX, childAnchor, i).contains(lx, ly)) {
-                String id = net.minecraft.core.registries.BuiltInRegistries.ITEM
-                        .getKey(st.getItem()).toString();
-                boolean pinned = SAOConfig.togglePinned(id);
-                java.nio.file.Path cfg = SAOConfig.path();
-                if (cfg == null) {
-                    cfg = mc().gameDirectory.toPath().resolve("config").resolve("saomenu.json");
-                }
-                SAOConfig.save(cfg);
-                invChildrenCacheAt = 0; // 立刻按新顺序重排
-                playPanel();
-                SAONotification.push(st.getHoverName().getString(),
-                        tr(pinned ? "saomenu.inv.pinned" : "saomenu.inv.unpinned"));
-                return true;
+                return i;
             }
         }
-        return false;
+        return -1;
+    }
+
+    /** 窗口行下标 → 物品注册名;取不到返回 null。 */
+    private String itemIdAtRow(int row) {
+        if (selectedMain < 0 || row < 0) {
+            return null;
+        }
+        MenuItem[] items = activeItems(selectedMain);
+        int shown = visibleChildrenItem(items);
+        if (shown < 0 || items[shown].children() == null) {
+            return null;
+        }
+        MenuItem[] children = windowedChildren(items[shown].children());
+        if (row >= children.length) {
+            return null;
+        }
+        ItemStack st = children[row].stack();
+        if (st == null || st.isEmpty()) {
+            return null;
+        }
+        return net.minecraft.core.registries.BuiltInRegistries.ITEM
+                .getKey(st.getItem()).toString();
+    }
+
+    /** Shift+右键:切换该行物品的置顶态并落盘。 */
+    private void togglePinAt(int row) {
+        String id = itemIdAtRow(row);
+        if (id == null) {
+            return;
+        }
+        boolean pinned = SAOConfig.togglePinned(id);
+        savePinConfig();
+        SAONotification.push(itemNameAtRow(row),
+                tr(pinned ? "saomenu.inv.pinned" : "saomenu.inv.unpinned"));
+    }
+
+    /** 右键拖动松手:把起点行的物品插到落点行的位置(两者都进置顶序列)。 */
+    private void applyPinDrag(int fromRow, int toRow) {
+        if (fromRow < 0 || toRow < 0 || fromRow == toRow) {
+            return;
+        }
+        String from = itemIdAtRow(fromRow);
+        String to = itemIdAtRow(toRow);
+        if (from == null || to == null) {
+            return;
+        }
+        SAOConfig.reorderPinned(from, to);
+        savePinConfig();
+        playPanel();
+    }
+
+    private String itemNameAtRow(int row) {
+        MenuItem[] items = activeItems(selectedMain);
+        int shown = visibleChildrenItem(items);
+        MenuItem[] children = windowedChildren(items[shown].children());
+        ItemStack st = children[row].stack();
+        return st == null || st.isEmpty() ? "" : st.getHoverName().getString();
+    }
+
+    private void savePinConfig() {
+        java.nio.file.Path cfg = SAOConfig.path();
+        if (cfg == null) {
+            cfg = mc().gameDirectory.toPath().resolve("config").resolve("saomenu.json");
+        }
+        SAOConfig.save(cfg);
+        invChildrenCacheAt = 0; // 立刻按新顺序重排
+        playPanel();
     }
 
 
@@ -1644,6 +1706,11 @@ public class SAOMenuScreen extends Screen {
 
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        if (button == 1 && pinDragFrom >= 0) {
+            applyPinDrag(pinDragFrom, pinRowAt((int) mouseX, (int) mouseY));
+            pinDragFrom = -1;
+            return true;
+        }
         SAOMapPanel.endDragAndSave();
         SAOClockPanel.endDragAndSave();
         SAOHud.endPlateDragAndSave();
@@ -1656,9 +1723,15 @@ public class SAOMenuScreen extends Screen {
         if (closing) {
             return false;
         }
-        // 右键:物品条目置顶/取消置顶(Shift+右键 与 右键 同效,便于单手操作)
+        // 右键:Shift+右键 = 置顶/取消置顶;单纯右键 = 按住拖动换序
         if (button == 1) {
-            if (togglePinAt((int) mouseX, (int) mouseY)) {
+            int row = pinRowAt((int) mouseX, (int) mouseY);
+            if (row >= 0) {
+                if (hasShiftDown()) {
+                    togglePinAt(row);
+                } else {
+                    pinDragFrom = row;
+                }
                 return true;
             }
             return super.mouseClicked(mouseX, mouseY, button);
@@ -1913,7 +1986,10 @@ public class SAOMenuScreen extends Screen {
                     SAONotification.push(tr("saomenu.skill.dual_wield.need_two"), "");
                 } else {
                     new com.sao.saomenu.party.DualWieldC2S(slots[0], slots[1]).sendToServer();
-                    SAODualWield.toBattleMode();
+                    // 延后切模式:Epic Fight 进战斗模式时会按「当前主手武器」
+                    // 解析动作集,必须等服务端把剑同步回客户端后再切,
+                    // 否则它按空手解析,表现为切了模式但没进入持剑架势
+                    SAODualWield.requestBattleMode();
                     SAONotification.push(tr("saomenu.skill.dual_wield"),
                             SAODualWield.epicFightPresent()
                                     ? tr("saomenu.skill.dual_wield.on")

@@ -91,24 +91,22 @@ public final class SAOItemActions {
      * 副手原有物品退回背包(放不下掉地上)。</p>
      */
     public static void handleDualWield(ServerPlayer player, int mainSlot, int offSlot) {
-        // 副手哨兵:-2 表示"这把剑已经在副手上",无需搬动
-        boolean offAlready = offSlot == -2;
-        if ((!offAlready && (offSlot < 0 || offSlot >= 36))
-                || mainSlot == offSlot || mainSlot < -2 || mainSlot >= 36
-                || (mainSlot == -2 && offAlready)) {
+        final int OFFHAND = -2;
+        boolean mainAlready = mainSlot == OFFHAND;
+        boolean offAlready = offSlot == OFFHAND;
+        if ((!mainAlready && (mainSlot < 0 || mainSlot >= 36))
+                || (!offAlready && (offSlot < 0 || offSlot >= 36))
+                || (!mainAlready && !offAlready && mainSlot == offSlot)) {
             return;
         }
         var inv = player.getInventory();
-        // 主手哨兵:两把都已在手上(主手剑+副手剑)就只剩切模式的事
-        if (mainSlot == -2 && offAlready) {
-            return;
-        }
-        ItemStack off = offAlready ? inv.offhand.get(0) : inv.getItem(offSlot);
-        if (off.isEmpty()) {
-            return;
-        }
+
+        // 1) 副手:需要从背包搬一把过去时,原有副手物品退回背包
         if (!offAlready) {
-            // 副手位腾空:原有物品先退回背包
+            ItemStack off = inv.getItem(offSlot);
+            if (off.isEmpty()) {
+                return;
+            }
             ItemStack oldOff = inv.offhand.get(0);
             inv.offhand.set(0, off.copy());
             inv.setItem(offSlot, ItemStack.EMPTY);
@@ -116,19 +114,22 @@ public final class SAOItemActions {
                 player.drop(oldOff, false);
             }
         }
-        // 主手:哨兵(已在主手)直接保持;快捷栏内直接选中;否则与选中槽互换
-        if (mainSlot == -2) {
-            // 主手已是剑,无需搬动
-        } else if (mainSlot < 9) {
-            inv.selected = mainSlot;
-        } else if (mainSlot != inv.selected) {
+
+        // 2) 主手:哨兵表示已握剑;否则把那把剑弄到「当前选中的快捷栏槽」上。
+        //    只改 inv.selected 是不够的——客户端 selected 由客户端自己维护,
+        //    服务端改它不会同步回去,表现为「切了模式但主手还是空手/旧物品」。
+        //    所以统一搬到玩家当前 selected 槽,主手立刻拿到剑,无需依赖同步。
+        if (!mainAlready) {
             ItemStack main = inv.getItem(mainSlot);
             if (main.isEmpty()) {
                 return;
             }
-            ItemStack displaced = inv.getItem(inv.selected);
-            inv.setItem(inv.selected, main.copy());
-            inv.setItem(mainSlot, displaced);
+            int sel = inv.selected;
+            if (mainSlot != sel) {
+                ItemStack displaced = inv.getItem(sel);
+                inv.setItem(sel, main.copy());
+                inv.setItem(mainSlot, displaced);
+            }
         }
         playEquip(player, 1.2f);
     }

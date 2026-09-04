@@ -51,6 +51,8 @@ public final class SAOKeybinds {
             SAOFreeLook.tick(client);
             // 生物死亡检测:死亡当帧爆散蓝色碎片
             SAODeathEffect.clientTick(client);
+            // 二刀流:装备包发出后延后几 tick 再切史诗战斗的战斗模式
+            SAODualWield.tick();
             while (OPEN_MENU.consumeClick()) {
                 if (client.player == null) {
                     continue;
