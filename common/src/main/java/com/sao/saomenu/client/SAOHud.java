@@ -171,11 +171,8 @@ public final class SAOHud {
         int py = plateY(h);
         renderPlate(g, px, py, plateW(w), plateH(w),
                 p.getGameProfile().getName(), p, 1f);
-        int effectsY = py + plateH(w) + 2;
-        // 队友血条:参照 SAO 左上角队伍血条组,排在自己血条板下方(与状态效果行并排)
+        // 队友血条:参照 SAO 左上角队伍血条组,排在自己血条板下方
         renderTeamBars(g, mc, px, py + plateH(w) + 2, w, p);
-        effectsY = py + plateH(w) + 2 + teamRows(mc) * (compactRowH(w) + 2);
-        renderEffects(g, px, effectsY, p, 1f);
         SAOCombatHud.render(g, mc, w, h, 1f);
         renderHotbarDots(g, w, h, p, 1f);
 
@@ -190,16 +187,6 @@ public final class SAOHud {
                 }
                 break;
             }
-        }
-
-        // 效果图标悬停提示(名称 + 剩余时间)
-        net.minecraft.world.effect.MobEffectInstance hovered = effectAt(
-                p, px, py + plateH(w) + 2 + teamRows(mc) * (compactRowH(w) + 2), mx, my);
-        if (hovered != null) {
-            int secs = hovered.getDuration() / 20;
-            String tip = hovered.getEffect().getDisplayName().getString()
-                    + " " + String.format("%d:%02d", secs / 60, secs % 60);
-            g.renderTooltip(Minecraft.getInstance().font, net.minecraft.network.chat.Component.literal(tip), mx, my);
         }
 
         detectEvents(p);
@@ -300,44 +287,6 @@ public final class SAOHud {
             s = s.replace("{" + i + "}", String.valueOf(args[i]));
         }
         return s;
-    }
-
-    /** 命中检测:返回悬停位置的效果实例,否则 null。 */
-    private static net.minecraft.world.effect.MobEffectInstance effectAt(
-            Player p, int x, int y, int mx, int my) {
-        int i = 0;
-        for (net.minecraft.world.effect.MobEffectInstance e : p.getActiveEffects()) {
-            if (e.isAmbient() && e.getDuration() <= 0) {
-                continue;
-            }
-            int ix = x + i * 20;
-            if (mx >= ix && mx < ix + 18 && my >= y && my < y + 18) {
-                return e;
-            }
-            i++;
-        }
-        return null;
-    }
-
-    /** SAO 增益栏:血条板下方一行状态效果图标(原版贴图,18x18)。 */
-    static void renderEffects(GuiGraphics g, int x, int y, Player p, float alpha) {
-        int i = 0;
-        for (net.minecraft.world.effect.MobEffectInstance e : p.getActiveEffects()) {
-            if (e.isAmbient() && e.getDuration() <= 0) {
-                continue;
-            }
-            String name = net.minecraft.core.registries.BuiltInRegistries.MOB_EFFECT
-                    .getKey(e.getEffect()).getPath();
-            net.minecraft.resources.ResourceLocation icon =
-                    new net.minecraft.resources.ResourceLocation("textures/mob_effect/" + name + ".png");
-            int ix = x + i * 20;
-            g.fill(ix, y, ix + 18, y + 18, mulAlpha(0x99000000, alpha));
-            RenderSystem.enableBlend();
-            shaderAlpha(alpha);
-            g.blit(icon, ix, y, 0, 0, 18, 18, 18, 18);
-            shaderAlpha(1f);
-            i++;
-        }
     }
 
     /**

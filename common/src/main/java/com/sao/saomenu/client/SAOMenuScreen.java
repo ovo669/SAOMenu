@@ -647,8 +647,6 @@ public class SAOMenuScreen extends Screen {
                 playerName(), pp, 1f);
         if (pp != null) {
             SAOHud.renderTeamBars(g, mc(), hudPx, hudPy + SAOHud.plateH(this.width) + 2, this.width, pp);
-            SAOHud.renderEffects(g, hudPx, hudPy + SAOHud.plateH(this.width) + 2
-                    + SAOHud.teamRows(mc()) * (SAOHud.compactRowH(this.width) + 2), pp, 1f);
         }
         SAOClockPanel.render(g, mc(), this.width, this.height, globalAlpha);
         if (pp != null && pp.getMaxHealth() > 0f) {
