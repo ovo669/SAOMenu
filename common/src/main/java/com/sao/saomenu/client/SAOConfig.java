@@ -68,8 +68,8 @@ public final class SAOConfig {
 
     /** 底部圆点物品栏大小倍率范围。 */
     public static final float HOTBAR_MIN = 0.6f;
-    public static final float HOTBAR_MAX = 1.6f;
-    public static final float DEF_HOTBAR_SCALE = 1.0f;
+    public static final float HOTBAR_MAX = 2.4f;
+    public static final float DEF_HOTBAR_SCALE = 1.3f;
     /** 第三人称菜单板(打开菜单时角色面前出现 SAO 菜单,F5 可见)默认开。 */
     public static final boolean DEF_THIRD_PERSON = true;
     /** Boss「Immortal Object」横幅默认开。 */

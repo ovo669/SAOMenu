@@ -373,14 +373,38 @@ public final class SAOHud {
             if (!stack.isEmpty()) {
                 int isz = Mth.clamp(Math.round(d * 0.62f), 4, Math.max(4, Math.min(16, d - 2)));
                 float s = isz / 16f;
+                // 圆点较小时,原版数量文字会随物品一起缩到不可读,改为下面用固定字号补画。
+                // 两者必须互斥:同时画会叠成一团糊字
+                boolean ownCount = s < 0.75f && stack.getCount() > 1;
                 g.pose().pushPose();
                 g.pose().translate(x + d / 2f, y + d / 2f, 120f);
                 g.pose().scale(s, s, 1f);
                 g.renderItem(stack, -8, -8);
-                if (s >= 0.75f) {
+                // renderItemDecorations 只在 count != 1 时画数量,传 count=1 的副本
+                // 可以只保留耐久条与冷却遮罩,把数量让给下面的固定字号绘制
+                if (ownCount) {
+                    ItemStack noCount = stack.copy();
+                    noCount.setCount(1);
+                    g.renderItemDecorations(mc.font, noCount, -8, -8);
+                } else {
                     g.renderItemDecorations(mc.font, stack, -8, -8);
                 }
                 g.pose().popPose();
+                if (ownCount) {
+                    String cnt = String.valueOf(stack.getCount());
+                    var font = mc.font;
+                    // 数字画到圆点外的右下缝隙里,不压在图标上:
+                    // 全字号文字(9px 高)在小圆点(约 13-16px)内部必然盖掉大半个物品,
+                    // 而圆点间距是直径的 1.7 倍,右侧缝隙约 0.7 直径,正好容得下两位数
+                    int tx = x + d - 3;
+                    int ty = y + d - font.lineHeight + 2;
+                    g.pose().pushPose();
+                    // z 抬到物品模型之上:物品是 3D 模型批次,深度比 GUI 平面元素深
+                    g.pose().translate(0, 0, 300f);
+                    // 不加底衬,只靠原版字体自带投影与背景区分(与 SAO 观感一致)
+                    g.drawString(font, cnt, tx, ty, mulAlpha(0xFFFFFFFF, alpha), true);
+                    g.pose().popPose();
+                }
             }
         }
     }
