@@ -100,6 +100,16 @@ public final class SAOTargetBar3D {
     public static final float LOOK_FADE_MARGIN = 0.32f;
     /** 生效距离(格)。 */
     public static final double MAX_DISTANCE = 42;
+    /**
+     * 同时显示的目标上限。
+     *
+     * <p>视野里生物一多,满屏环带与文字会糊成一片、也读不出哪个是当前目标;
+     * 按「视线对准程度 + 距离」排序只留前几个。落选目标走既有的淡出通道,
+     * 不会硬切。</p>
+     */
+    public static final int MAX_TARGETS = 3;
+    /** 排序权重:视线对准占比(其余归距离)。 */
+    public static final float SCORE_LOOK_WEIGHT = 0.65f;
     /** 每 tick 的淡入/淡出步长。 */
     public static final float FADE_STEP = 0.18f;
     /**
@@ -174,7 +184,27 @@ public final class SAOTargetBar3D {
     /** HUD 文字的一次性投影结果(世界渲染阶段算好,HUD 阶段消费)。 */
     private record Label(int entityId, float x, float y, float frac, float alpha) {
     }
+
+    /** 本帧的目标候选(第一趟收集、评分排序后第二趟才绘制)。 */
+    private record Candidate(LivingEntity entity, Vec3 center, double dist, float gate) {
+    }
     // ------------------------------------------------------------ 纯函数(可测)
+
+    /**
+     * 目标优先级评分:越大越该显示。
+     *
+     * <p>两项加权:视线对准程度({@code gate},已含生物角半径,占
+     * {@link #SCORE_LOOK_WEIGHT})与距离近度(占其余)。准星正对的优先,
+     * 同样对准程度下近的优先。</p>
+     *
+     * @param gate 视线门控 0-1(见 {@link #lookFactor})
+     * @param dist 相机到目标的距离(格)
+     */
+    public static float targetScore(float gate, double dist) {
+        float near = (float) (1.0 - Mth.clamp(dist / MAX_DISTANCE, 0.0, 1.0));
+        return Mth.clamp(gate, 0f, 1f) * SCORE_LOOK_WEIGHT
+                + near * (1f - SCORE_LOOK_WEIGHT);
+    }
 
     /**
      * 视线对准程度:1 表示看在生物身上,0 表示视线之外。
@@ -305,6 +335,11 @@ public final class SAOTargetBar3D {
         java.util.Set<Integer> present = new java.util.HashSet<>();
         // 队友头顶绿三角:成员表里的在线玩家(不含自己)逐帧收集
         java.util.Set<java.util.UUID> partyIds = collectPartyIds(mc);
+
+        // 两趟:先扫出所有候选并评分,只留前 MAX_TARGETS 个再绘制。
+        // 评分需要 gate 与距离,而 gate 的计算本身很便宜(距离早退已过滤),
+        // 真正贵的是 drawRing/drawMarker 与 clip 射线,所以射线也放到第二趟。
+        List<Candidate> cands = new ArrayList<>();
         for (Entity e : mc.level.entitiesForRendering()) {
             if (!(e instanceof LivingEntity le) || le == mc.player || !le.isAlive()) {
                 continue;
@@ -312,7 +347,7 @@ public final class SAOTargetBar3D {
             if (le instanceof Player && mc.player.isPassenger()) {
                 continue;
             }
-            // 队友:画绿三角,跳过敌对红菱形逻辑
+            // 队友:画绿三角,跳过敌对红菱形逻辑(不占目标名额)
             if (le instanceof Player && partyIds.contains(le.getUUID())) {
                 present.add(le.getId());
                 drawPartyMarker(mc, pose, src, le, camPos, partialTick, now);
@@ -326,16 +361,29 @@ public final class SAOTargetBar3D {
                 continue;
             }
             double dist = Math.sqrt(distSq);
-            present.add(le.getId());
-
             Vec3 dir = center.subtract(camPos).normalize();
             float angle = (float) Math.acos(Mth.clamp(look.dot(dir), -1.0, 1.0));
             float gate = lookFactor(angle,
                     angularRadius(le.getBbWidth(), le.getBbHeight(), dist));
+            cands.add(new Candidate(le, center, dist, gate));
+        }
+        // 视线对准优先、同等对准下近的优先
+        cands.sort((c1, c2) -> Float.compare(
+                targetScore(c2.gate(), c2.dist()), targetScore(c1.gate(), c1.dist())));
+
+        int shown = 0;
+        for (Candidate c : cands) {
+            LivingEntity le = c.entity();
+            present.add(le.getId());
+            float gate = c.gate();
+            // 超出名额:门控清零走淡出(不是硬切),已淡完的直接跳过绘制
+            if (gate > 0.01f && shown >= MAX_TARGETS) {
+                gate = 0f;
+            }
             // 隔墙目标不显示:相机到环带中心的视线被方块挡住时清零门控,
             // 环带/菱形/名称血量文字与 Boss 横幅共用 gate,一起随淡出收掉。
-            // 只对已过视线锥的候选做 clip,避免对全场实体逐帧射线检测。
-            if (gate > 0.01f && !hasLineOfSight(mc, camPos, center)) {
+            // 只对已过视线锥且在名额内的候选做 clip,避免全场逐帧射线检测。
+            if (gate > 0.01f && !hasLineOfSight(mc, camPos, c.center())) {
                 gate = 0f;
             }
             // Boss 横幅登记(视线门控,HUD 层绘制)
@@ -347,7 +395,10 @@ public final class SAOTargetBar3D {
             if (a <= 0.01f) {
                 continue;
             }
-            drawRing(mc, pose, src, le, center, camPos, a, now, partialTick, dtTicks);
+            if (gate > 0.01f) {
+                shown++;
+            }
+            drawRing(mc, pose, src, le, c.center(), camPos, a, now, partialTick, dtTicks);
         }
         // 离开视野的实体逐步淡出后清理
         for (Iterator<Map.Entry<Integer, Float>> it = ALPHA.entrySet().iterator(); it.hasNext(); ) {

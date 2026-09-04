@@ -256,4 +256,37 @@ class SAOTargetBar3DTest {
         }
         assertEquals(10f, cur, 0.001f, "多步追赶应收敛到目标角");
     }
+
+    @Test
+    void scoreFavoursAimedTargetOverCloserOne() {
+        // 远处但准星对准 vs 近处但没看:对准的该胜出
+        float aimedFar = SAOTargetBar3D.targetScore(1f, 30);
+        float unaimedNear = SAOTargetBar3D.targetScore(0f, 2);
+        assertTrue(aimedFar > unaimedNear, "视线对准应比单纯距离近更优先");
+    }
+
+    @Test
+    void scoreFavoursCloserAtEqualAim() {
+        float near = SAOTargetBar3D.targetScore(0.8f, 4);
+        float far = SAOTargetBar3D.targetScore(0.8f, 35);
+        assertTrue(near > far, "同等对准程度下近的优先");
+    }
+
+    @Test
+    void scoreStaysNormalised() {
+        assertEquals(1f, SAOTargetBar3D.targetScore(1f, 0), 0.001f, "满分=正对且贴身");
+        assertEquals(0f, SAOTargetBar3D.targetScore(0f, SAOTargetBar3D.MAX_DISTANCE), 0.001f,
+                "零分=没看且在最远处");
+        for (float g = 0f; g <= 1f; g += 0.25f) {
+            for (double d = 0; d <= SAOTargetBar3D.MAX_DISTANCE; d += 7) {
+                float sc = SAOTargetBar3D.targetScore(g, d);
+                assertTrue(sc >= 0f && sc <= 1f, "评分应落在 [0,1]:" + sc);
+            }
+        }
+    }
+
+    @Test
+    void targetCapIsThree() {
+        assertEquals(3, SAOTargetBar3D.MAX_TARGETS, "同屏最多 3 个目标");
+    }
 }
